@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:meet_chat/core/providers/UserProvider.dart';
+import 'package:meet_chat/core/services/PresenceService.dart';
 import 'package:meet_chat/routes/%5BAuth%5D/AuthPage.dart';
 import 'package:meet_chat/routes/SearchPage.dart';
+import 'package:meet_chat/core/providers/UserPresenceNotifier.dart'; // Import the notifier
 
 class AppHeader extends ConsumerWidget implements PreferredSizeWidget {
   final String title;
@@ -37,14 +39,34 @@ class AppHeader extends ConsumerWidget implements PreferredSizeWidget {
       title: Row(
         children: [
           if (photoURL != null)
-            CircleAvatar(
-              backgroundImage: NetworkImage(photoURL),
+            Stack(
+              children: [
+                CircleAvatar(
+                  backgroundImage: NetworkImage(photoURL),
+                ),
+                Positioned(
+                  right: 0,
+                  bottom: 0,
+                  child: StreamBuilder<String>(
+                    stream: UserPresenceService().getPresenceStream(user!.uid),
+                    builder: (context, snapshot) {
+                      final presence = snapshot.data ?? 'offline';
+                      return CircleAvatar(
+                        radius: 6,
+                        backgroundColor:
+                        presence == 'online' ? Colors.green : Colors.red,
+                      );
+                    },
+                  ),
+                ),
+              ],
             ),
           const SizedBox(width: 10),
           if (user != null)
             Text(
               displayName.toString(),
-              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              style: const TextStyle(
+                  color: Colors.white, fontWeight: FontWeight.bold),
             ),
         ],
       ),
@@ -82,7 +104,7 @@ class AppHeader extends ConsumerWidget implements PreferredSizeWidget {
           icon: const Icon(Icons.more_vert, color: Colors.white),
           onSelected: (String result) {
             if (result == 'Logout') {
-              _logout(context);
+              _logout(context, ref);
             }
           },
           itemBuilder: (BuildContext context) {
@@ -113,7 +135,8 @@ class AppHeader extends ConsumerWidget implements PreferredSizeWidget {
     );
   }
 
-  void _logout(BuildContext context) async {
+  void _logout(BuildContext context, WidgetRef ref) async {
+    await ref.read(userPresenceNotifierProvider.notifier).setPresence(false); // Set user presence to offline
     await FirebaseAuth.instance.signOut();
 
     Navigator.of(context).pushReplacement(

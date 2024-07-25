@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:meet_chat/core/models/UserModel.dart';
 import 'package:meet_chat/routes/UserProfile.dart';
 import 'package:meet_chat/routes/SwipePage.dart';
+import 'package:meet_chat/core/services/PresenceService.dart';
 
 class UserCard extends StatelessWidget {
   const UserCard({Key? key, required this.user}) : super(key: key);
@@ -59,6 +60,20 @@ class UserCard extends StatelessWidget {
                                   fontSize: isSwipePage ? 24 : 16, // Larger font size if in SwipePage
                                 ),
                               ),
+                            ),
+                          ),
+                          Positioned(
+                            top: 8,
+                            right: 8,
+                            child: StreamBuilder<String>(
+                              stream: UserPresenceService().getPresenceStream(user.Id ?? ''),
+                              builder: (context, snapshot) {
+                                final presence = snapshot.data ?? 'offline';
+                                return CircleAvatar(
+                                  radius: 6,
+                                  backgroundColor: presence == 'online' ? Colors.green : Colors.red,
+                                );
+                              },
                             ),
                           ),
                         ],

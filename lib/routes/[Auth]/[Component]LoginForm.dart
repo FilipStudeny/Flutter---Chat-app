@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:meet_chat/components/ErrorMessageWidget.dart';
 import 'package:meet_chat/core/globals.dart';
@@ -6,17 +7,19 @@ import 'package:meet_chat/core/models/ServiceResponse.dart';
 import 'package:meet_chat/core/services/AuthenticationService.dart';
 import 'package:meet_chat/core/services/DatabaseService.dart';
 import 'package:meet_chat/routes/HomePage.dart';
+import 'package:meet_chat/core/providers/UserPresenceNotifier.dart'; // Import the notifier
 
-class LoginForm extends StatefulWidget {
+class LoginForm extends ConsumerStatefulWidget {
   final IAuthenticationService authenticationService;
   final IDatabaseService databaseService;
+
   const LoginForm({super.key, required this.authenticationService, required this.databaseService});
 
   @override
   _LoginFormState createState() => _LoginFormState();
 }
 
-class _LoginFormState extends State<LoginForm> {
+class _LoginFormState extends ConsumerState<LoginForm> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
@@ -51,6 +54,9 @@ class _LoginFormState extends State<LoginForm> {
         if (databaseResponse.success == true) {
           await FIREBASE_INSTANCE.currentUser?.updateDisplayName(databaseResponse.data?.Username);
           await FIREBASE_INSTANCE.currentUser?.updatePhotoURL(databaseResponse.data?.ProfilePictureUrl);
+
+          // Set user presence to online
+          await ref.read(userPresenceNotifierProvider.notifier).setPresence(true);
 
           Navigator.pushNamed(context, HomePage.route);
         } else {

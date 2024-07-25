@@ -6,6 +6,7 @@ import 'package:meet_chat/components/AppHeader.dart';
 import 'package:meet_chat/core/models/FileMetadata.dart';
 import 'package:meet_chat/core/providers/ChatMessagesNotifier.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:meet_chat/core/services/PresenceService.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import 'package:dio/dio.dart';
 import 'package:path_provider/path_provider.dart';
@@ -43,7 +44,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
   void _onScroll() {
     if (_scrollController.offset >=
-            _scrollController.position.maxScrollExtent &&
+        _scrollController.position.maxScrollExtent &&
         !_scrollController.position.outOfRange) {
       if (!_loadingMessages && _hasMoreMessages) {
         _loadMoreMessages();
@@ -166,42 +167,43 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             child: isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : messagesState.isEmpty
-                    ? const Center(child: Text('No messages yet.'))
-                    : ListView.builder(
-                        controller: _scrollController,
-                        itemCount: messagesState.length +
-                            (_loadingMessages ? 1 : 0) +
-                            (_hasMoreMessages ? 0 : 1),
-                        reverse: true, // Reverse to show newest at the bottom
-                        itemBuilder: (ctx, index) {
-                          if (index ==
-                              messagesState.length +
-                                  (_loadingMessages ? 1 : 0)) {
-                            return const Padding(
-                              padding: EdgeInsets.all(8.0),
-                              child: Center(
-                                  child: Text("No more messages")),
-                            );
-                          }
-                          if (index == messagesState.length) {
-                            return const Padding(
-                              padding: EdgeInsets.all(8.0),
-                              child: Center(child: CircularProgressIndicator()),
-                            );
-                          }
-                          final message = messagesState[index];
-                          return ChatMessage(
-                            message: message.text,
-                            username: message.username,
-                            userImage: message.userImage,
-                            fileMetadata: message.file,
-                            isMe: message.senderId ==
-                                FirebaseAuth.instance.currentUser?.uid,
-                            timestamp: message.createdAt,
-                            key: ValueKey(index),
-                          );
-                        },
-                      ),
+                ? const Center(child: Text('No messages yet.'))
+                : ListView.builder(
+              controller: _scrollController,
+              itemCount: messagesState.length +
+                  (_loadingMessages ? 1 : 0) +
+                  (_hasMoreMessages ? 0 : 1),
+              reverse: true, // Reverse to show newest at the bottom
+              itemBuilder: (ctx, index) {
+                if (index ==
+                    messagesState.length +
+                        (_loadingMessages ? 1 : 0)) {
+                  return const Padding(
+                    padding: EdgeInsets.all(8.0),
+                    child: Center(
+                        child: Text("No more messages")),
+                  );
+                }
+                if (index == messagesState.length) {
+                  return const Padding(
+                    padding: EdgeInsets.all(8.0),
+                    child: Center(child: CircularProgressIndicator()),
+                  );
+                }
+                final message = messagesState[index];
+                return ChatMessage(
+                  message: message.text,
+                  username: message.username,
+                  userId: widget.recipientId, // Pass the recipientId
+                  userImage: message.userImage,
+                  fileMetadata: message.file,
+                  isMe: message.senderId ==
+                      FirebaseAuth.instance.currentUser?.uid,
+                  timestamp: message.createdAt,
+                  key: ValueKey(index),
+                );
+              },
+            ),
           ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
@@ -226,7 +228,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                           borderSide: BorderSide.none,
                         ),
                         contentPadding:
-                            const EdgeInsets.symmetric(horizontal: 20),
+                        const EdgeInsets.symmetric(horizontal: 20),
                       ),
                       onSubmitted: (_) => _sendMessage(),
                     ),
@@ -248,6 +250,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 class ChatMessage extends StatelessWidget {
   final String? message;
   final String username;
+  final String userId; // Add userId to fetch presence
   final String? userImage;
   final FileMetadata? fileMetadata;
   final bool isMe;
@@ -256,6 +259,7 @@ class ChatMessage extends StatelessWidget {
   const ChatMessage({
     this.message,
     required this.username,
+    required this.userId, // Add userId to constructor
     this.userImage,
     this.fileMetadata,
     required this.isMe,
@@ -330,7 +334,7 @@ class ChatMessage extends StatelessWidget {
                 right: 70,
                 child: IconButton(
                   icon:
-                      const Icon(Icons.download, color: Colors.white, size: 30),
+                  const Icon(Icons.download, color: Colors.white, size: 30),
                   onPressed: () =>
                       _downloadFile(context, photoUrl, 'image.jpg'),
                 ),
@@ -360,14 +364,33 @@ class ChatMessage extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 10.0),
       child: Row(
         mainAxisAlignment:
-            isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
+        isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
         children: [
           if (!isMe)
-            CircleAvatar(
-              radius: 18,
-              backgroundImage:
+            Stack(
+              children: [
+                CircleAvatar(
+                  radius: 18,
+                  backgroundImage:
                   userImage != null ? NetworkImage(userImage!) : null,
-              child: userImage == null ? Text(username[0]) : null,
+                  child: userImage == null ? Text(username[0]) : null,
+                ),
+                Positioned(
+                  right: 0,
+                  bottom: 0,
+                  child: StreamBuilder<String>(
+                    stream: UserPresenceService().getPresenceStream(userId),
+                    builder: (context, snapshot) {
+                      final presence = snapshot.data ?? 'offline';
+                      return CircleAvatar(
+                        radius: 6,
+                        backgroundColor:
+                        presence == 'online' ? Colors.green : Colors.red,
+                      );
+                    },
+                  ),
+                ),
+              ],
             ),
           const SizedBox(width: 8),
           Container(
@@ -388,7 +411,7 @@ class ChatMessage extends StatelessWidget {
             padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
             child: Column(
               crossAxisAlignment:
-                  isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+              isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
               children: [
                 Text(
                   username,
@@ -416,52 +439,52 @@ class ChatMessage extends StatelessWidget {
                   const SizedBox(height: 8),
                   _isImageFile(fileMetadata!.type)
                       ? GestureDetector(
-                          onTap: () =>
-                              _showPhotoDialog(context, fileMetadata!.url),
-                          child: Stack(
-                            children: [
-                              Container(
-                                width: 60,
-                                height: 60,
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(8),
-                                  child: Image.network(
-                                    fileMetadata!.url,
-                                    fit: BoxFit.cover,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        )
-                      : GestureDetector(
-                          onTap: () {
-                            _downloadFile(context, fileMetadata!.url,
-                                'file.${fileMetadata!.type.split('/').last}');
-                          },
-                          child: Container(
-                            margin: const EdgeInsets.only(top: 5),
-                            padding: const EdgeInsets.all(10),
-                            decoration: BoxDecoration(
-                              border: Border.all(color: Colors.blue),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: const Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(Icons.file_present, color: Colors.blue),
-                                SizedBox(width: 5),
-                                Expanded(
-                                  child: Text(
-                                    'File',
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(color: Colors.blue),
-                                  ),
-                                ),
-                              ],
+                    onTap: () =>
+                        _showPhotoDialog(context, fileMetadata!.url),
+                    child: Stack(
+                      children: [
+                        Container(
+                          width: 60,
+                          height: 60,
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Image.network(
+                              fileMetadata!.url,
+                              fit: BoxFit.cover,
                             ),
                           ),
                         ),
+                      ],
+                    ),
+                  )
+                      : GestureDetector(
+                    onTap: () {
+                      _downloadFile(context, fileMetadata!.url,
+                          'file.${fileMetadata!.type.split('/').last}');
+                    },
+                    child: Container(
+                      margin: const EdgeInsets.only(top: 5),
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.blue),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.file_present, color: Colors.blue),
+                          SizedBox(width: 5),
+                          Expanded(
+                            child: Text(
+                              'File',
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(color: Colors.blue),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 ],
                 Padding(
                   padding: const EdgeInsets.only(top: 4.0),
@@ -482,7 +505,7 @@ class ChatMessage extends StatelessWidget {
               child: CircleAvatar(
                 radius: 18,
                 backgroundImage:
-                    userImage != null ? NetworkImage(userImage!) : null,
+                userImage != null ? NetworkImage(userImage!) : null,
                 child: userImage == null ? Text(username[0]) : null,
               ),
             ),

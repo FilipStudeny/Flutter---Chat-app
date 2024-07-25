@@ -10,11 +10,14 @@ import 'package:meet_chat/components/BottomAppBarComponent.dart';
 import 'package:meet_chat/components/ErrorMessageWidget.dart';
 import 'package:meet_chat/core/globals.dart';
 import 'package:meet_chat/core/models/FileMetadata.dart';
+import 'package:meet_chat/core/models/Notification.dart';
 import 'package:meet_chat/core/models/UserModel.dart';
 import 'package:meet_chat/core/providers/UserProvider.dart';
 import 'package:meet_chat/core/services/DatabaseService.dart';
+import 'package:meet_chat/core/services/NotificationService.dart';
 import 'package:meet_chat/core/services/StorageService.dart';
 import 'package:meet_chat/routes/ChatScreen.dart';
+import 'package:meet_chat/core/services/PresenceService.dart';
 
 class UserProfile extends ConsumerStatefulWidget {
   static const String route = "profile";
@@ -37,6 +40,7 @@ class _UserProfileState extends ConsumerState<UserProfile> {
   String selectionError = '';
 
   final IDatabaseService _databaseService = INJECTOR<IDatabaseService>();
+  final INotificationService _notificationService = INJECTOR<INotificationService>();
   final IStorageService _storageService = StorageService();
   final User? currentUser = FirebaseAuth.instance.currentUser;
 
@@ -154,6 +158,31 @@ class _UserProfileState extends ConsumerState<UserProfile> {
         );
       },
     );
+  }
+
+  Future<void> _sendFriendRequest() async {
+    if (currentUser == null || user == null) return;
+
+    final senderId = currentUser!.uid;
+    final recipientId = widget.userId;
+    final senderUsername = ref.read(userProvider).username ?? currentUser!.displayName ?? 'Someone';
+
+    final response = await _notificationService.createNotification(
+      senderId,
+      recipientId,
+      '$senderUsername has sent you a friend request',
+      NotificationType.friendRequest,
+    );
+
+    if (response.success == true) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Friend request sent successfully')),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to send friend request: ${response.message}')),
+      );
+    }
   }
 
   Future<void> _handleProfilePictureUpload(File file) async {
@@ -535,16 +564,14 @@ class _UserProfileState extends ConsumerState<UserProfile> {
             icon: Icons.person_add,
             startColor: const Color(0xFFFF5F6D),
             endColor: Colors.pinkAccent,
-            onPressed: () {
-              // Add friend request logic here
-            },
+            onPressed: _sendFriendRequest, // Call the function here
           ),
           buildIconButton(
             icon: Icons.message,
             startColor: Colors.red,
             endColor: Colors.deepOrange,
             onPressed: () {
-              Navigator.pushNamed(context, ChatScreen.route, arguments: user?.Id);
+              Navigator.pushNamed(context, ChatScreen.route, arguments: user?.Id ?? '');
             },
           ),
         ],
@@ -590,6 +617,36 @@ class _UserProfileState extends ConsumerState<UserProfile> {
                 onPressed: _changeProfilePicture,
               ),
             ),
+          Positioned(
+            top: 16,
+            right: 16,
+            child: StreamBuilder<String>(
+              stream: UserPresenceService().getPresenceStream(widget.userId),
+              builder: (context, snapshot) {
+                final presence = snapshot.data ?? 'offline';
+                return Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.7),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 6,
+                        backgroundColor: presence == 'online' ? Colors.green : Colors.red,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        presence == 'online' ? 'Online' : 'Offline',
+                        style: const TextStyle(color: Colors.black),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
         ],
       ),
     );

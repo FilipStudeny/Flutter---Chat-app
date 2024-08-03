@@ -11,43 +11,43 @@ Explore some screenshots of Timber's user interface and features:
 <div style="display: flex; flex-wrap: wrap; gap: 10px;">
 
   <div style="flex: 1 0 30%;">
-    <img src="images/img_1.png" alt="Image 1" style="width: 100%;">
+    <img src="././images/img_1.png" alt="Image 1" style="width: 100%;">
   </div>
   <div style="flex: 1 0 30%;">
-    <img src="images/img_2.png" alt="Image 2" style="width: 100%;">
+    <img src="./images/img_2.png" alt="Image 2" style="width: 100%;">
   </div>
   <div style="flex: 1 0 30%;">
-    <img src="images/img_3.png" alt="Image 3" style="width: 100%;">
+    <img src="./images/img_3.png" alt="Image 3" style="width: 100%;">
   </div>
   <div style="flex: 1 0 30%;">
-    <img src="images/img_4.png" alt="Image 4" style="width: 100%;">
+    <img src="./images/img_4.png" alt="Image 4" style="width: 100%;">
   </div>
   <div style="flex: 1 0 30%;">
-    <img src="images/img_5.png" alt="Image 5" style="width: 100%;">
+    <img src="./images/img_5.png" alt="Image 5" style="width: 100%;">
   </div>
   <div style="flex: 1 0 30%;">
-    <img src="images/img_6.png" alt="Image 6" style="width: 100%;">
+    <img src="./images/img_6.png" alt="Image 6" style="width: 100%;">
   </div>
   <div style="flex: 1 0 30%;">
-    <img src="images/img_7.png" alt="Image 7" style="width: 100%;">
+    <img src="./images/img_7.png" alt="Image 7" style="width: 100%;">
   </div>
   <div style="flex: 1 0 30%;">
-    <img src="images/img_8.png" alt="Image 8" style="width: 100%;">
+    <img src="./images/img_8.png" alt="Image 8" style="width: 100%;">
   </div>
   <div style="flex: 1 0 30%;">
-    <img src="images/img_9.png" alt="Image 9" style="width: 100%;">
+    <img src="./images/img_9.png" alt="Image 9" style="width: 100%;">
   </div>
   <div style="flex: 1 0 30%;">
-    <img src="images/img_10.png" alt="Image 10" style="width: 100%;">
+    <img src="./images/img_10.png" alt="Image 10" style="width: 100%;">
   </div>
   <div style="flex: 1 0 30%;">
-    <img src="images/img_11.png" alt="Image 11" style="width: 100%;">
+    <img src="./images/img_11.png" alt="Image 11" style="width: 100%;">
   </div>
   <div style="flex: 1 0 30%;">
-    <img src="images/img_12.png" alt="Image 12" style="width: 100%;">
+    <img src="./images/img_12.png" alt="Image 12" style="width: 100%;">
   </div>
   <div style="flex: 1 0 30%;">
-    <img src="images/img_13.png" alt="Image 13" style="width: 100%;">
+    <img src="./images/img_13.png" alt="Image 13" style="width: 100%;">
   </div>
   <div style="flex: 1 0 30%;">
   </div>
@@ -65,7 +65,7 @@ Timber is powered by a range of robust libraries to enhance its functionality:
 - **Dio**: A powerful HTTP client for handling network requests.
 - **Mime**: Identifies file types using magic numbers.
 - **path_provider**: A Flutter plugin for accessing commonly used locations on the filesystem.
-- **image_gallery_saver**: Saves images to the device's gallery.
+- **image_gallery_saver**: Saves ./images to the device's gallery.
 
 ## Features
 

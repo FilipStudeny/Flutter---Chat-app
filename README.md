@@ -8,12 +8,12 @@ Timber is a social application built using Flutter and Firebase. It provides a p
 
 Explore some screenshots of Timber's user interface and features:
 
-| ![Image 1](./images/img_1.png) | ![Image 2](./images/img_2.png) | ![Image 3](./images/img_3.png) |
+| ![Image 1](/images/img_1.PNG) | ![Image 2](/images/img_2.PNG) | ![Image 3](/images/img_3.PNG) |
 |:------------------------------:|:------------------------------:|:------------------------------:|
-| ![Image 4](./images/img_4.png) | ![Image 5](./images/img_5.png) | ![Image 6](./images/img_6.png) |
-| ![Image 7](./images/img_7.png) | ![Image 8](./images/img_8.png) | ![Image 9](./images/img_9.png) |
-| ![Image 10](./images/img_10.png) | ![Image 11](./images/img_11.png) | ![Image 12](./images/img_12.png) |
-| ![Image 13](./images/img_13.png) |                                                             
+| ![Image 4](/images/img_4.PNG) | ![Image 5](/images/img_5.PNG) | ![Image 6](/images/img_6.PNG) |
+| ![Image 7](/images/img_7.PNG) | ![Image 8](/images/img_8.PNG) | ![Image 9](/images/img_9.PNG) |
+| ![Image 10](/images/img_10.PNG) | ![Image 11](/images/img_11.PNG) | ![Image 12](/images/img_12.PNG) |
+| ![Image 13](/images/img_13.PNG) |                                                             
 
 
 ## Libraries Used
@@ -26,7 +26,7 @@ Timber is powered by a range of robust libraries to enhance its functionality:
 - **Dio**: A powerful HTTP client for handling network requests.
 - **Mime**: Identifies file types using magic numbers.
 - **path_provider**: A Flutter plugin for accessing commonly used locations on the filesystem.
-- **image_gallery_saver**: Saves ./images to the device's gallery.
+- **image_gallery_saver**: Saves /images to the device's gallery.
 
 ## Features
 

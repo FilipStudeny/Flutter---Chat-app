@@ -5,7 +5,9 @@ import 'package:meet_chat/core/providers/UserProvider.dart';
 import 'package:meet_chat/core/services/PresenceService.dart';
 import 'package:meet_chat/routes/%5BAuth%5D/AuthPage.dart';
 import 'package:meet_chat/routes/SearchPage.dart';
-import 'package:meet_chat/core/providers/UserPresenceNotifier.dart'; // Import the notifier
+import 'package:meet_chat/core/providers/UserPresenceNotifier.dart';
+import 'package:meet_chat/core/providers/NotificationsProvider.dart';
+import 'package:meet_chat/routes/NotificationsPage.dart';
 
 class AppHeader extends ConsumerWidget implements PreferredSizeWidget {
   final String title;
@@ -25,6 +27,7 @@ class AppHeader extends ConsumerWidget implements PreferredSizeWidget {
     final user = FirebaseAuth.instance.currentUser;
     final photoURL = userState.profilePictureUrl ?? user?.photoURL;
     final displayName = userState.username ?? user?.displayName;
+    final notifications = ref.watch(userNotificationsProvider);
 
     return AppBar(
       flexibleSpace: Container(
@@ -53,8 +56,9 @@ class AppHeader extends ConsumerWidget implements PreferredSizeWidget {
                       final presence = snapshot.data ?? 'offline';
                       return CircleAvatar(
                         radius: 6,
-                        backgroundColor:
-                        presence == 'online' ? Colors.green : Colors.red,
+                        backgroundColor: presence == 'online'
+                            ? Colors.green
+                            : Colors.red,
                       );
                     },
                   ),
@@ -88,17 +92,65 @@ class AppHeader extends ConsumerWidget implements PreferredSizeWidget {
               );
             },
           ),
-        IconButton(
-          icon: const Icon(Icons.shopping_bag, color: Colors.white),
-          onPressed: () {
-            // Handle shopping bag action
-          },
-        ),
-        IconButton(
-          icon: const Icon(Icons.security, color: Colors.white),
-          onPressed: () {
-            // Handle security action
-          },
+        Stack(
+          alignment: Alignment.center,
+          children: [
+            IconButton(
+              icon: const Icon(Icons.notifications, color: Colors.white),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const NotificationsPage(),
+                  ),
+                );
+              },
+            ),
+            notifications.when(
+              data: (data) {
+                int unreadCount =
+                    data.where((notification) => !notification.read).length;
+                return unreadCount > 0
+                    ? Positioned(
+                  right: 8,
+                  top: 8,
+                  child: GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const NotificationsPage(),
+                        ),
+                      );
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(2),
+                      decoration: BoxDecoration(
+                        color: Colors.red,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      constraints: const BoxConstraints(
+                        minWidth: 20,
+                        minHeight: 20,
+                      ),
+                      child: Text(
+                        '$unreadCount',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+                )
+                    : const SizedBox.shrink(); // No badge if no unread notifications
+              },
+              loading: () => const SizedBox.shrink(), // No badge during loading
+              error: (error, stack) => const SizedBox.shrink(),
+            ),
+          ],
         ),
         PopupMenuButton<String>(
           icon: const Icon(Icons.more_vert, color: Colors.white),
@@ -136,7 +188,9 @@ class AppHeader extends ConsumerWidget implements PreferredSizeWidget {
   }
 
   void _logout(BuildContext context, WidgetRef ref) async {
-    await ref.read(userPresenceNotifierProvider.notifier).setPresence(false); // Set user presence to offline
+    await ref
+        .read(userPresenceNotifierProvider.notifier)
+        .setPresence(false); // Set user presence to offline
     await FirebaseAuth.instance.signOut();
 
     Navigator.of(context).pushReplacement(
@@ -145,5 +199,6 @@ class AppHeader extends ConsumerWidget implements PreferredSizeWidget {
   }
 
   @override
-  Size get preferredSize => Size.fromHeight(kToolbarHeight + (tabController != null ? kTextTabBarHeight : 0.0));
+  Size get preferredSize => Size.fromHeight(
+      kToolbarHeight + (tabController != null ? kTextTabBarHeight : 0.0));
 }

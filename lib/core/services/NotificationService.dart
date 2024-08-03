@@ -5,13 +5,24 @@ import 'package:meet_chat/core/models/ServiceResponse.dart';
 
 abstract class INotificationService {
   Future<ServiceResponse<void>> createNotification(
-      String senderId, String recipientId, String message, NotificationType type);
+      String senderId,
+      String recipientId,
+      String message,
+      NotificationType type,
+      );
 
   Future<void> markNotificationAsRead(String userId, String notificationId);
 
   Future<void> deleteOldNotifications(String userId);
 
+  Future<void> deleteNotificationById(String userId, String notificationId);
+
   Stream<List<UserNotification>> loadUserNotifications(String userId);
+
+  Stream<List<UserNotification>> loadUserNotificationsByType(
+      String userId,
+      NotificationType type,
+      );
 }
 
 class NotificationService implements INotificationService {
@@ -19,7 +30,11 @@ class NotificationService implements INotificationService {
 
   @override
   Future<ServiceResponse<void>> createNotification(
-      String senderId, String recipientId, String message, NotificationType type) async {
+      String senderId,
+      String recipientId,
+      String message,
+      NotificationType type,
+      ) async {
     try {
       final newNotification = UserNotification(
         senderId: senderId,
@@ -38,7 +53,11 @@ class NotificationService implements INotificationService {
 
       return ServiceResponse<void>(data: null, success: true);
     } on Exception catch (err) {
-      return ServiceResponse<void>(data: null, message: err.toString(), success: false);
+      return ServiceResponse<void>(
+        data: null,
+        message: err.toString(),
+        success: false,
+      );
     }
   }
 
@@ -82,6 +101,21 @@ class NotificationService implements INotificationService {
   }
 
   @override
+  Future<void> deleteNotificationById(String userId, String notificationId) async {
+    try {
+      await _firestore
+          .collection('users')
+          .doc(userId)
+          .collection('notifications')
+          .doc(notificationId)
+          .delete();
+      print('Notification deleted successfully.');
+    } catch (e) {
+      print('Error deleting notification: $e');
+    }
+  }
+
+  @override
   Stream<List<UserNotification>> loadUserNotifications(String userId) {
     return _firestore
         .collection('users')
@@ -90,7 +124,28 @@ class NotificationService implements INotificationService {
         .orderBy('createdAt', descending: true)
         .snapshots()
         .map((snapshot) {
-      return snapshot.docs.map((doc) => UserNotification.fromMap(doc.data(), doc.id)).toList();
+      return snapshot.docs
+          .map((doc) => UserNotification.fromMap(doc.data(), doc.id))
+          .toList();
+    });
+  }
+
+  @override
+  Stream<List<UserNotification>> loadUserNotificationsByType(
+      String userId,
+      NotificationType type,
+      ) {
+    return _firestore
+        .collection('users')
+        .doc(userId)
+        .collection('notifications')
+        .where('type', isEqualTo: type.toString())
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) {
+      return snapshot.docs
+          .map((doc) => UserNotification.fromMap(doc.data(), doc.id))
+          .toList();
     });
   }
 }

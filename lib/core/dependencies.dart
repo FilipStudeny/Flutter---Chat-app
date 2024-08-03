@@ -13,5 +13,4 @@ void setupDependencies() {
   INJECTOR.registerSingleton<IMessagingService>(MessagingService());
   INJECTOR.registerSingleton<INotificationService>(NotificationService());
   INJECTOR.registerSingleton<IUserPresenceService>(UserPresenceService());
-
 }

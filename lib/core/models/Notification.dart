@@ -13,6 +13,7 @@ class UserNotification {
   final NotificationType type;
   final DateTime createdAt;
   final String id;
+  final bool read; // Add the 'read' property
 
   UserNotification({
     required this.senderId,
@@ -21,6 +22,7 @@ class UserNotification {
     required this.type,
     required this.createdAt,
     required this.id,
+    this.read = false,
   });
 
   Map<String, dynamic> toMap() {
@@ -28,8 +30,9 @@ class UserNotification {
       'senderId': senderId,
       'recipientId': recipientId,
       'message': message,
-      'type': type.toString().split('.').last,
+      'type': type,
       'createdAt': Timestamp.fromDate(createdAt),
+      'read': read,
     };
   }
 
@@ -38,9 +41,10 @@ class UserNotification {
       senderId: map['senderId'],
       recipientId: map['recipientId'],
       message: map['message'],
-      type: NotificationType.values.firstWhere((e) => e.toString() == 'NotificationType.${map['type']}'),
+      type: NotificationType.values.firstWhere((e) => e.toString() == '${map['type']}'),
       createdAt: (map['createdAt'] as Timestamp).toDate(),
       id: id,
+      read: map['read'] as bool? ?? false,
     );
   }
 }

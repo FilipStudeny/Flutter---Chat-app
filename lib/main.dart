@@ -7,6 +7,7 @@ import 'package:meet_chat/firebase_options.dart';
 import 'package:meet_chat/routes/%5BAuth%5D/AuthPage.dart';
 import 'package:meet_chat/routes/ChatScreen.dart';
 import 'package:meet_chat/routes/HomePage.dart';
+import 'package:meet_chat/routes/NotificationsPage.dart';
 import 'package:meet_chat/routes/RootPage.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
@@ -54,7 +55,7 @@ class MyApp extends StatelessWidget {
         UserProfile.route: (context) => UserProfile(userId: ModalRoute.of(context)!.settings.arguments as String),
         SwipePage.route: (context) => const SwipePage(),
         ChatScreen.route: (context) => ChatScreen(recipientId: ModalRoute.of(context)!.settings.arguments as String),
-
+        NotificationsPage.route: (context) => const NotificationsPage(),
       },
     );
   }

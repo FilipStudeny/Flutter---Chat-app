@@ -1,10 +1,12 @@
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:meet_chat/core/models/Notification.dart';
 import 'package:meet_chat/core/models/ServiceResponse.dart';
 import 'package:meet_chat/core/models/Message.dart';
 import 'package:meet_chat/core/globals.dart';
 import 'package:meet_chat/core/services/StorageService.dart';
+import 'package:meet_chat/core/services/NotificationService.dart'; // Import the NotificationService
 
 abstract class IMessagingService {
   Future<ServiceResponse<void>> sendMessage(
@@ -132,7 +134,7 @@ class MessagingService implements IMessagingService {
       }
 
       List<Map<String, dynamic>> messagesData =
-          List<Map<String, dynamic>>.from(data['messages']);
+      List<Map<String, dynamic>>.from(data['messages']);
       messagesData.sort((a, b) =>
           (b['createdAt'] as Timestamp).compareTo(a['createdAt'] as Timestamp));
       if (messagesData.length > limit) {
@@ -158,7 +160,7 @@ class MessagingService implements IMessagingService {
     }
 
     List<Map<String, dynamic>> messagesData =
-        List<Map<String, dynamic>>.from(data['messages']);
+    List<Map<String, dynamic>>.from(data['messages']);
     messagesData.sort((a, b) =>
         (b['createdAt'] as Timestamp).compareTo(a['createdAt'] as Timestamp));
     int lastIndex = messagesData.indexWhere((messageData) {
@@ -177,7 +179,7 @@ class MessagingService implements IMessagingService {
     }
 
     List<Map<String, dynamic>> moreMessagesData =
-        messagesData.sublist(lastIndex + 1, endIndex);
+    messagesData.sublist(lastIndex + 1, endIndex);
 
     return moreMessagesData.map((messageData) {
       return Message.fromMap(messageData, doc);

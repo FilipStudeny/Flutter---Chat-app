@@ -7,10 +7,11 @@ abstract class IDatabaseService {
   Future<ServiceResponse<bool>> createUser(String id, UserModel user);
   Future<ServiceResponse<UserModel>> getUser(String id);
   Future<ServiceResponse<List<UserModel>>> getAllUsers({int limit, DocumentSnapshot? lastDocument});
-  Future<ServiceResponse<List<UserModel>>> getFriends();
+  Future<ServiceResponse<List<UserModel>>> getFriends({int limit = 10, DocumentSnapshot? lastDocument, String? userId});
   Future<ServiceResponse<List<UserModel>>> searchUsers({String? username, List<Gender>? genders, int? minAge, int? maxAge});
   Future<ServiceResponse<bool>> updateUserData(String id, UserModel user);
   Future<ServiceResponse<bool>> updateProfilePicture(String id, String profilePictureUrl);
+  Future<ServiceResponse<void>> addFriend(String userId, String friendId);
 }
 
 class DatabaseService implements IDatabaseService {
@@ -96,9 +97,57 @@ class DatabaseService implements IDatabaseService {
   }
 
   @override
-  Future<ServiceResponse<List<UserModel>>> getFriends() {
-    // TODO: implement getFriends
-    throw UnimplementedError();
+  Future<ServiceResponse<List<UserModel>>> getFriends({int limit = 10, DocumentSnapshot? lastDocument, String? userId}) async {  try {
+
+    final userSnapshot = await FIREBASE_FIRESTORE
+        .collection("users")
+        .doc(userId)
+        .get();
+
+    final List<String> friends = List<String>.from(userSnapshot.get('friends') ?? []);
+    if (friends.isEmpty) {
+      return ServiceResponse<List<UserModel>>(
+        message: "No friends found",
+        success: true,
+        data: [],
+      );
+    }
+
+    List<UserModel> friendUsers = [];
+
+      Query query = FIREBASE_FIRESTORE
+          .collection("users")
+          .where(FieldPath.documentId, whereIn: friends)
+          .limit(limit);
+
+      if (lastDocument != null) {
+        query = query.startAfterDocument(lastDocument);
+      }
+
+      final querySnapshot = await query.get();
+
+      for (var doc in querySnapshot.docs) {
+        UserModel user = UserModel.fromDocument(doc);
+        friendUsers.add(user);
+      }
+
+    if (friendUsers.isNotEmpty) {
+      return ServiceResponse<List<UserModel>>(
+        data: friendUsers,
+        success: true,
+      );
+    } else {
+      return ServiceResponse<List<UserModel>>(
+        message: "No friends found",
+        success: false,
+      );
+    }
+  } catch (err) {
+    return ServiceResponse<List<UserModel>>(
+      message: err.toString(),
+      success: false,
+    );
+  }
   }
 
   @override
@@ -188,6 +237,39 @@ class DatabaseService implements IDatabaseService {
     }
   }
 
+  @override
+  Future<ServiceResponse<void>> addFriend(String userId, String friendId) async {
+    try {
+      // Add friendId to userId's friends list
+      final userDoc = FIREBASE_FIRESTORE.collection("users").doc(userId);
+      final userSnapshot = await userDoc.get();
+
+      if (userSnapshot.exists) {
+        final List<String> userFriends = List<String>.from(userSnapshot.get('friends') ?? []);
+        if (!userFriends.contains(friendId)) {
+          userFriends.add(friendId);
+          await userDoc.update({"friends": userFriends});
+        }
+      }
+
+      // Add userId to friendId's friends list
+      final friendDoc = FIREBASE_FIRESTORE.collection("users").doc(friendId);
+      final friendSnapshot = await friendDoc.get();
+
+      if (friendSnapshot.exists) {
+        final List<String> friendFriends = List<String>.from(friendSnapshot.get('friends') ?? []);
+        if (!friendFriends.contains(userId)) {
+          friendFriends.add(userId);
+          await friendDoc.update({"friends": friendFriends});
+        }
+      }
+
+      return ServiceResponse<void>(success: true);
+    } on Exception catch (err) {
+      return ServiceResponse<void>(message: err.toString(), success: false);
+    }
+  }
+
   String _genderToString(Gender gender) {
     return gender == Gender.Male ? 'Male' : 'Female';
   }
@@ -195,4 +277,6 @@ class DatabaseService implements IDatabaseService {
   Gender _genderFromString(String gender) {
     return gender == 'Male' ? Gender.Male : Gender.Female;
   }
+
+
 }

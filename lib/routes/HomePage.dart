@@ -24,7 +24,6 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
   late User? loggedInUser;
   UserModel? currentUserData;
   List<UserModel> users = [];
-  String _errorMessage = '';
   bool isLoading = false;
   DocumentSnapshot? lastDocument;
   bool hasMore = true;
@@ -84,9 +83,10 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     });
 
     try {
-      final serviceResponse = await _databaseService.getAllUsers(
+      final serviceResponse = await _databaseService.getFriends(
         limit: 10, // Increase the limit
         lastDocument: lastDocument,
+        userId:  FirebaseAuth.instance.currentUser?.uid
       );
 
       if (serviceResponse.success == true) {

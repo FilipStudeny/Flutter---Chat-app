@@ -30,7 +30,7 @@ class UserNotification {
       'senderId': senderId,
       'recipientId': recipientId,
       'message': message,
-      'type': type,
+      'type': type.toString().split('.').last,
       'createdAt': Timestamp.fromDate(createdAt),
       'read': read,
     };
@@ -41,8 +41,7 @@ class UserNotification {
       senderId: map['senderId'],
       recipientId: map['recipientId'],
       message: map['message'],
-      type: NotificationType.values.firstWhere((e) => e.toString() == '${map['type']}'),
-      createdAt: (map['createdAt'] as Timestamp).toDate(),
+      type: NotificationType.values.firstWhere((e) => e.toString() == 'NotificationType.${map['type']}'),      createdAt: (map['createdAt'] as Timestamp).toDate(),
       id: id,
       read: map['read'] as bool? ?? false,
     );

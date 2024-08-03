@@ -261,6 +261,7 @@ class _NotificationsPageState extends State<NotificationsPage>
   }
 
   Icon _getNotificationIcon(NotificationType type) {
+    print(type);
     switch (type) {
       case NotificationType.message:
         return const Icon(Icons.message, color: Colors.blue);

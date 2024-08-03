@@ -12,6 +12,7 @@ abstract class IDatabaseService {
   Future<ServiceResponse<bool>> updateUserData(String id, UserModel user);
   Future<ServiceResponse<bool>> updateProfilePicture(String id, String profilePictureUrl);
   Future<ServiceResponse<void>> addFriend(String userId, String friendId);
+  Future<ServiceResponse<void>> removeFriend(String userId, String friendId);
 }
 
 class DatabaseService implements IDatabaseService {
@@ -266,6 +267,37 @@ class DatabaseService implements IDatabaseService {
 
       return ServiceResponse<void>(success: true);
     } on Exception catch (err) {
+      return ServiceResponse<void>(message: err.toString(), success: false);
+    }
+  }
+
+  @override
+  Future<ServiceResponse<void>> removeFriend(String userId, String friendId) async {
+    try {
+      final userDoc = FIREBASE_FIRESTORE.collection("users").doc(userId);
+      final userSnapshot = await userDoc.get();
+
+      if (userSnapshot.exists) {
+        final List<String> friends = List<String>.from(userSnapshot.get('friends') ?? []);
+        if (friends.contains(friendId)) {
+          friends.remove(friendId);
+          await userDoc.update({"friends": friends});
+        }
+      }
+
+      final friendDoc = FIREBASE_FIRESTORE.collection("users").doc(friendId);
+      final friendSnapshot = await friendDoc.get();
+
+      if (friendSnapshot.exists) {
+        final List<String> friends = List<String>.from(friendSnapshot.get('friends') ?? []);
+        if (friends.contains(userId)) {
+          friends.remove(userId);
+          await friendDoc.update({"friends": friends});
+        }
+      }
+
+      return ServiceResponse<void>(success: true);
+    } catch (err) {
       return ServiceResponse<void>(message: err.toString(), success: false);
     }
   }

@@ -89,6 +89,8 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
         userId:  FirebaseAuth.instance.currentUser?.uid
       );
 
+      print(serviceResponse.data?.length);
+
       if (serviceResponse.success == true) {
         final fetchedUsers = serviceResponse.data as List<UserModel>;
         setState(() {

@@ -38,9 +38,11 @@ class _UserProfileState extends ConsumerState<UserProfile> {
   bool isSelectionMode = false;
   Set<String> selectedPhotos = Set<String>();
   String selectionError = '';
+  bool isFriend = false; // Track friendship status
 
   final IDatabaseService _databaseService = INJECTOR<IDatabaseService>();
-  final INotificationService _notificationService = INJECTOR<INotificationService>();
+  final INotificationService _notificationService =
+  INJECTOR<INotificationService>();
   final IStorageService _storageService = StorageService();
   final User? currentUser = FirebaseAuth.instance.currentUser;
 
@@ -56,8 +58,17 @@ class _UserProfileState extends ConsumerState<UserProfile> {
     try {
       final databaseResponse = await _databaseService.getUser(widget.userId);
       if (databaseResponse.success == true) {
-        final photosResponse = await _storageService.getUserPhotos(widget.userId);
-        if (photosResponse.success == true) {
+        final photosResponse =
+        await _storageService.getUserPhotos(widget.userId);
+        final currentUserData =
+        await _databaseService.getUser(currentUser!.uid);
+
+        if (photosResponse.success == true &&
+            currentUserData.success == true) {
+          // Check if the user is already a friend
+          final currentUserFriends = currentUserData.data!.Friends ?? [];
+          isFriend = currentUserFriends.contains(widget.userId);
+
           setState(() {
             user = databaseResponse.data;
             userPhotos = photosResponse.data ?? [];
@@ -65,7 +76,8 @@ class _UserProfileState extends ConsumerState<UserProfile> {
           });
         } else {
           setState(() {
-            errorMessage = photosResponse.message ?? "Error loading user photos";
+            errorMessage =
+                photosResponse.message ?? "Error loading user photos";
             isLoading = false;
           });
         }
@@ -85,7 +97,8 @@ class _UserProfileState extends ConsumerState<UserProfile> {
 
   Future<void> _refreshPhotos() async {
     try {
-      final photosResponse = await _storageService.getUserPhotos(widget.userId);
+      final photosResponse =
+      await _storageService.getUserPhotos(widget.userId);
       if (photosResponse.success == true) {
         setState(() {
           userPhotos = photosResponse.data ?? [];
@@ -165,7 +178,8 @@ class _UserProfileState extends ConsumerState<UserProfile> {
 
     final senderId = currentUser!.uid;
     final recipientId = widget.userId;
-    final senderUsername = ref.read(userProvider).username ?? currentUser!.displayName ?? 'Someone';
+    final senderUsername =
+        ref.read(userProvider).username ?? currentUser!.displayName ?? 'Someone';
 
     final response = await _notificationService.createNotification(
       senderId,
@@ -180,8 +194,60 @@ class _UserProfileState extends ConsumerState<UserProfile> {
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to send friend request: ${response.message}')),
+        SnackBar(
+            content: Text('Failed to send friend request: ${response.message}')),
       );
+    }
+  }
+
+  Future<void> _removeFriend() async {
+    bool? confirmed = await showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Remove Friend'),
+          content: const Text('Do you want to remove this friend?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Remove'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed == true) {
+      try {
+        final response = await _databaseService.removeFriend(currentUser!.uid, widget.userId);
+        if (response.success == true) {
+          if (mounted) { // Check if the widget is still mounted
+            setState(() {
+              // Update the UI if the removal was successful
+              // This could involve removing the user from a local list of friends or similar
+            });
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Friend removed successfully')),
+            );
+          }
+        } else {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Failed to remove friend: ${response.message}')),
+            );
+          }
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error removing friend: $e')),
+          );
+        }
+      }
     }
   }
 
@@ -224,7 +290,8 @@ class _UserProfileState extends ConsumerState<UserProfile> {
                 onTap: () async {
                   Navigator.of(context).pop();
                   final picker = ImagePicker();
-                  final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+                  final pickedFile =
+                  await picker.pickImage(source: ImageSource.gallery);
                   if (pickedFile != null) {
                     onImagePicked(File(pickedFile.path));
                   }
@@ -236,7 +303,8 @@ class _UserProfileState extends ConsumerState<UserProfile> {
                 onTap: () async {
                   Navigator.of(context).pop();
                   final picker = ImagePicker();
-                  final pickedFile = await picker.pickImage(source: ImageSource.camera);
+                  final pickedFile =
+                  await picker.pickImage(source: ImageSource.camera);
                   if (pickedFile != null) {
                     onImagePicked(File(pickedFile.path));
                   }
@@ -281,7 +349,8 @@ class _UserProfileState extends ConsumerState<UserProfile> {
                       await _refreshPhotos(); // Refresh photos after successful profile picture update
                     } else {
                       setState(() {
-                        errorMessage = updateResponse.message ?? "Error updating profile picture";
+                        errorMessage =
+                            updateResponse.message ?? "Error updating profile picture";
                       });
                       Navigator.pop(context);
                     }
@@ -503,7 +572,8 @@ class _UserProfileState extends ConsumerState<UserProfile> {
     user!.AboutMe = aboutMe;
     user!.DateOfBirth = dateOfBirth;
 
-    final response = await _databaseService.updateUserData(widget.userId, user!);
+    final response =
+    await _databaseService.updateUserData(widget.userId, user!);
     if (response.success == true) {
       await currentUser?.updateDisplayName(username);
       ref.read(userProvider.notifier).setUsername(username);
@@ -561,17 +631,18 @@ class _UserProfileState extends ConsumerState<UserProfile> {
             },
           ),
           buildIconButton(
-            icon: Icons.person_add,
+            icon: isFriend ? Icons.close : Icons.person_add,
             startColor: const Color(0xFFFF5F6D),
             endColor: Colors.pinkAccent,
-            onPressed: _sendFriendRequest, // Call the function here
+            onPressed: isFriend ? _removeFriend : _sendFriendRequest,
           ),
           buildIconButton(
             icon: Icons.message,
             startColor: Colors.red,
             endColor: Colors.deepOrange,
             onPressed: () {
-              Navigator.pushNamed(context, ChatScreen.route, arguments: user?.Id ?? '');
+              Navigator.pushNamed(context, ChatScreen.route,
+                  arguments: user?.Id ?? '');
             },
           ),
         ],
@@ -625,7 +696,8 @@ class _UserProfileState extends ConsumerState<UserProfile> {
               builder: (context, snapshot) {
                 final presence = snapshot.data ?? 'offline';
                 return Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding:
+                  const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.7),
                     borderRadius: BorderRadius.circular(8),
@@ -634,7 +706,8 @@ class _UserProfileState extends ConsumerState<UserProfile> {
                     children: [
                       CircleAvatar(
                         radius: 6,
-                        backgroundColor: presence == 'online' ? Colors.green : Colors.red,
+                        backgroundColor:
+                        presence == 'online' ? Colors.green : Colors.red,
                       ),
                       const SizedBox(width: 8),
                       Text(
@@ -759,7 +832,8 @@ class _UserProfileState extends ConsumerState<UserProfile> {
             crossAxisSpacing: 8,
             mainAxisSpacing: 8,
           ),
-          itemCount: isUserProfileOwner ? userPhotos.length + 1 : userPhotos.length,
+          itemCount:
+          isUserProfileOwner ? userPhotos.length + 1 : userPhotos.length,
           itemBuilder: (context, index) {
             if (isUserProfileOwner && index == userPhotos.length) {
               return GestureDetector(

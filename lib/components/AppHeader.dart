@@ -161,16 +161,8 @@ class AppHeader extends ConsumerWidget implements PreferredSizeWidget {
           },
           itemBuilder: (BuildContext context) {
             List<PopupMenuEntry<String>> menuItems = [
-              const PopupMenuItem<String>(
-                value: 'Option 1',
-                child: Text('Option 1'),
-              ),
-              const PopupMenuItem<String>(
-                value: 'Option 2',
-                child: Text('Option 2'),
-              ),
-            ];
 
+            ];
             if (user != null) {
               menuItems.add(
                 const PopupMenuItem<String>(

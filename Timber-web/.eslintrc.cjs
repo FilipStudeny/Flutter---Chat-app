@@ -1,8 +1,3 @@
-const fs = require("fs");
-const path = require("path");
-
-const prettierOptions = JSON.parse(fs.readFileSync(path.resolve(__dirname, ".prettierrc.json"), "utf8"));
-
 module.exports = {
 	root: true,
 	env: { browser: true, es2020: true },

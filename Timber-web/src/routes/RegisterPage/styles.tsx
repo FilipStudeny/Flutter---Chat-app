@@ -1,5 +1,6 @@
 import { styled } from '@mui/system';
 import { Box, Button, Typography, Link, TextField } from '@mui/material';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker/DatePicker';
 
 export const RegisterContainer = styled(Box)({
     display: 'flex',
@@ -15,7 +16,6 @@ export const RegisterContainer = styled(Box)({
 });
 
 export const LogoContainer = styled(Box)({
-    marginBottom: '2rem',
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
@@ -35,7 +35,6 @@ export const Title = styled(Typography)({
 });
 
 export const StyledTextField = styled(TextField)({
-    marginBottom: '1rem',
     '& .MuiOutlinedInput-root': {
         '& fieldset': {
             borderColor: '#ccc',
@@ -59,12 +58,16 @@ export const SignInButton = styled(Button)({
     background: 'linear-gradient(45deg, rgba(255,64,129,1) 0%, rgba(255,105,135,1) 100%)',
     color: '#fff',
     borderRadius: '25px',
+    width: '50%',
+    cursor: 'pointer', 
     '&:hover': {
         backgroundColor: '#FF4081',
     },
-    width: '50%'
+    '&:disabled': {
+        background: 'rgba(255,105,135, 0.5)',
+        color: 'rgba(255, 255, 255, 0.7)',
+    },
 });
-
 
 export const StyledLink = styled(Link)({
     color: '#000',
@@ -74,4 +77,21 @@ export const StyledLink = styled(Link)({
         textDecoration: 'none',
     },
     textDecoration: 'none',
+});
+
+export const StyledDatePicker = styled(DatePicker)({
+    '& .MuiOutlinedInput-root': {
+        '& fieldset': {
+            borderColor: '#ccc',
+        },
+        '&:hover fieldset': {
+            borderColor: '#FF4081',
+        },
+        '&.Mui-focused fieldset': {
+            borderColor: '#FF4081',
+        },
+    },
+    '& .MuiInputLabel-root.Mui-focused': {
+        color: '#FF4081',
+    },
 });

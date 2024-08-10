@@ -2,12 +2,13 @@ import React, { useState } from 'react';
 import ParkIcon from '@mui/icons-material/Park';
 import { FormControl, Box } from '@mui/material';
 import { LoginContainer, Logo, LogoContainer, SignInButton, StyledLink, StyledTextField, Title } from './styles';
+import { AppRoutes } from '../../constants/Enums/AppRoutes';
 
 const LoginPage: React.FC = () => {
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
-    const [emailError, setEmailError] = useState('');
-    const [passwordError, setPasswordError] = useState('');
+    const [email, setEmail] = useState<string>('');
+    const [password, setPassword] = useState<string>('');
+    const [emailError, setEmailError] = useState<string>('');
+    const [passwordError, setPasswordError] = useState<string>('');
 
     const validateEmail = (email: string) => {
         const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -75,7 +76,7 @@ const LoginPage: React.FC = () => {
                     <SignInButton type="submit" variant="contained">Sign in</SignInButton>
                 </Box>
             </FormControl>
-            <StyledLink href="/register" underline="none">
+            <StyledLink href={`${AppRoutes.Register}`} underline="none">
                 Don't have an account? <span>Create an account</span>
             </StyledLink>
         </LoginContainer>

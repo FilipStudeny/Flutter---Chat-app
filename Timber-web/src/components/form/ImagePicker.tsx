@@ -22,7 +22,9 @@ const ImagePicker: React.FC<ImagePickerProps> = ({ onImageCropped }) => {
     const onClose = () => {
         setSrc(null);
         setPreview(null);
+        onImageCropped(''); // Notify the parent that no image was selected
     };
+    
 
     const onCrop = (view: string) => {
         setPreview(view);

@@ -13,10 +13,13 @@ import {
     buttonStyles,
     iconButtonStyles,
 } from './styles'; 
+import { useAuth } from '../../../context/AuthenticationContext';
 
 const Header: React.FC = () => {
     const navigate = useNavigate();
 
+    const { currentUser, logout } = useAuth();
+    
     const handleProfileClick = () => {
         navigate('/profile');
     };
@@ -31,7 +34,7 @@ const Header: React.FC = () => {
                         sx={avatarStyles}
                     />
                     <Typography variant="h6" component="span" sx={{ fontWeight: 'bold', fontSize: '1rem' }}>
-                        nika
+                        {currentUser?.email}
                     </Typography>
                 </Button>
 
@@ -46,6 +49,9 @@ const Header: React.FC = () => {
                     </Button>
                     <Button color="inherit" sx={buttonStyles}>
                         Sign Up
+                    </Button>
+                    <Button color="inherit" onClick={logout} sx={buttonStyles}>
+                        Loggout
                     </Button>
                     <IconButton color="inherit" sx={iconButtonStyles}>
                         <Settings />

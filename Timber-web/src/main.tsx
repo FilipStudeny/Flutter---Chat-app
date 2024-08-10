@@ -10,9 +10,12 @@ import '@fontsource/roboto/500.css';
 import '@fontsource/roboto/700.css';
 import { RouterProvider } from 'react-router-dom';
 import routes from './routes/routes';
+import { AuthenticationProvider } from './context/AuthenticationContext';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <RouterProvider router={routes}/>
+      <AuthenticationProvider>
+        <RouterProvider router={routes}/>
+      </AuthenticationProvider>
   </React.StrictMode>
 );

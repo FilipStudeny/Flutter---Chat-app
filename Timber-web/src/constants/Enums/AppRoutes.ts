@@ -12,4 +12,5 @@ export enum AppRoutes {
     Search = '/search',
     Settings = '/settings',
     ProfileSettings = '/profile/settings',
+    ForgottenPassword = '/forgoten-password',
 }

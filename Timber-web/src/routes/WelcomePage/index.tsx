@@ -2,6 +2,7 @@
 import React from 'react';
 import ParkIcon from '@mui/icons-material/Park';
 import { Logo, LogoContainer, SignInButton, StyledLink, Title, WelcomeContainer } from './styles';
+import { AppRoutes } from '../../constants/Enums/AppRoutes';
 
 const WelcomePage: React.FC = () => {
     return (
@@ -12,8 +13,8 @@ const WelcomePage: React.FC = () => {
                 </Logo>
                 <Title variant="h4">Timber</Title>
             </LogoContainer>
-            <SignInButton href='/login' variant="contained">Sign into your account</SignInButton>
-            <StyledLink href="/register" underline="none">
+            <SignInButton href={`${AppRoutes.SignIn}`} variant="contained">Sign into your account</SignInButton>
+            <StyledLink href={`${AppRoutes.Register}`} underline="none">
                 Create a New Account
             </StyledLink>
             

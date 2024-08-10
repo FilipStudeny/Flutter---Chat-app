@@ -10,6 +10,7 @@ import ImagePicker from '../../components/form/ImagePicker';
 import GenderSelector from '../../components/form/GenderSelector';
 import { Gender } from '../../constants/Enums/Gender';
 import { AppRoutes } from '../../constants/Enums/AppRoutes';
+import { useAuth } from '../../context/AuthenticationContext';
 
 const RegisterPage: React.FC = () => {
     const [croppedImage, setCroppedImage] = useState<string | null>(null);
@@ -24,6 +25,8 @@ const RegisterPage: React.FC = () => {
     const [dateOfBirth, setDateOfBirth] = useState<Dayjs | null>(null);
     const [errors, setErrors] = useState<{ [key: string]: string }>({});
     const [isFormValid, setIsFormValid] = useState<boolean>(false);
+
+    const { signup } = useAuth();
 
     useEffect(() => {
         const checkFormValidity = () => {
@@ -96,7 +99,7 @@ const RegisterPage: React.FC = () => {
     const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         if (validateForm()) {
-            console.log('Form Submitted', { croppedImage, selectedGender, firstName, lastName, username, email, dateOfBirth, aboutMe });
+            signup(email, password)
         }
     };
 

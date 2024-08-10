@@ -1,2 +1,3 @@
 .idea
 .vscode
+/Timber-web/src/firebase-options.js

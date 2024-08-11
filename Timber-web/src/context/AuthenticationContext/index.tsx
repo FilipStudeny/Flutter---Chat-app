@@ -12,6 +12,7 @@ import {
 import { createContext, ReactNode, FC, useContext, useState, useEffect } from 'react';
 import { FirebaseAuth } from '../../firebase';
 import { getFirabaseAuthErrorMessage } from '../../constants/Errors/firebase-auth-errors';
+import { getDatabase, ref, set, onDisconnect, remove } from 'firebase/database';
 
 interface AuthResponse {
     success: boolean;
@@ -35,7 +36,7 @@ interface AuthenticationProviderProps {
     children: ReactNode;
 }
 
-export const useAuth = () => {
+export const useAuth = (): AuthenticationContextType => {
     const context = useContext(AuthenticationContext);
     if (!context) {
         throw new Error('useAuth must be used within an AuthenticationProvider');
@@ -46,20 +47,44 @@ export const useAuth = () => {
 export const AuthenticationProvider: FC<AuthenticationProviderProps> = ({ children }) => {
     const [currentUser, setCurrentUser] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState<boolean>(true);
+    const database = getDatabase();
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(FirebaseAuth, (user) => {
             setCurrentUser(user);
             setIsLoading(false);
+
+            if (user) {
+                const userStatusRef = ref(database, `/status/${user.uid}`);
+
+                // Set the user's online status to true
+                set(userStatusRef, {
+                    online: true,
+                    last_seen: Date.now()
+                });
+
+                // Handle disconnect event: update the user's status to offline
+                onDisconnect(userStatusRef).set({
+                    online: false,
+                    last_seen: Date.now()
+                });
+            }
         });
 
         return () => unsubscribe();
-    }, []);
+    }, [database]);
 
     const login = async (email: string, password: string): Promise<AuthResponse> => {
         try {
             const userCredential = await signInWithEmailAndPassword(FirebaseAuth, email, password);
             setCurrentUser(userCredential.user);
+
+            const userStatusRef = ref(database, `/status/${userCredential.user.uid}`);
+            set(userStatusRef, {
+                online: true,
+                last_seen: Date.now()
+            });
+
             return { success: true, user: userCredential.user };
         } catch (error) {
             const firebaseError = error as { code: string };
@@ -71,6 +96,13 @@ export const AuthenticationProvider: FC<AuthenticationProviderProps> = ({ childr
         try {
             const userCredential = await createUserWithEmailAndPassword(FirebaseAuth, email, password);
             setCurrentUser(userCredential.user);
+
+            const userStatusRef = ref(database, `/status/${userCredential.user.uid}`);
+            set(userStatusRef, {
+                online: true,
+                last_seen: Date.now()
+            });
+
             return { success: true, user: userCredential.user };
         } catch (error) {
             const firebaseError = error as { code: string };
@@ -80,8 +112,14 @@ export const AuthenticationProvider: FC<AuthenticationProviderProps> = ({ childr
 
     const logout = async (): Promise<AuthResponse> => {
         try {
+            if (currentUser) {
+                const userStatusRef = ref(database, `/status/${currentUser.uid}`);
+                await remove(userStatusRef);
+            }
+
             await signOut(FirebaseAuth);
             setCurrentUser(null);
+
             return { success: true };
         } catch (error) {
             const firebaseError = error as { code: string };
@@ -137,4 +175,3 @@ export const AuthenticationProvider: FC<AuthenticationProviderProps> = ({ childr
 };
 
 export default AuthenticationContext;
-

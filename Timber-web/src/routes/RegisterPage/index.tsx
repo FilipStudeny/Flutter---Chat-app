@@ -6,11 +6,12 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import dayjs, { Dayjs } from 'dayjs';
 import { Logo, LogoContainer, SignInButton, StyledLink, Title, RegisterContainer, StyledTextField } from './styles';
 import ParkIcon from '@mui/icons-material/Park';
-import ImagePicker from '../../components/form/ImagePicker';
+import ImagePicker from '../../components/form/ImageSelector';
 import GenderSelector from '../../components/form/GenderSelector';
 import { Gender } from '../../constants/Enums/Gender';
 import { AppRoutes } from '../../constants/Enums/AppRoutes';
 import { useAuth } from '../../context/AuthenticationContext';
+import { useNavigate } from 'react-router-dom';
 
 const RegisterPage: React.FC = () => {
     const [croppedImage, setCroppedImage] = useState<string | null>(null);
@@ -25,6 +26,8 @@ const RegisterPage: React.FC = () => {
     const [dateOfBirth, setDateOfBirth] = useState<Dayjs | null>(null);
     const [errors, setErrors] = useState<{ [key: string]: string }>({});
     const [isFormValid, setIsFormValid] = useState<boolean>(false);
+    const [signUpError, setsignUpError] = useState<string>('');
+    const navigate = useNavigate();
 
     const { signup } = useAuth();
 
@@ -96,10 +99,17 @@ const RegisterPage: React.FC = () => {
         return Object.keys(newErrors).length === 0;
     };
 
-    const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         if (validateForm()) {
-            signup(email, password)
+            const response = await signup(email, password);
+            if (response.success) {
+                setsignUpError('');
+                navigate(AppRoutes.SignIn);
+            } else {
+                setsignUpError(response.message || 'Login failed. Please check your email and password and try again.');
+            }
+            
         }
     };
 
@@ -210,6 +220,24 @@ const RegisterPage: React.FC = () => {
                         Create account
                     </SignInButton>
                 </Box>
+                {signUpError && (
+                    <Typography
+                        color="error"
+                        variant="body2"
+                        align="center"
+                        sx={{
+                            backgroundColor: 'rgba(255,64,129,0.1)',
+                            border: '1px solid #FF4081',
+                            borderRadius: '5px',
+                            padding: '10px',
+                            margin: '10px 0',
+                            fontWeight: 'bold',
+                            color: '#FF4081',
+                        }}
+                    >
+                        {signUpError}
+                    </Typography>
+                )}
             </FormControl>
 
             <StyledLink mb={2} href={`${AppRoutes.SignIn}`} underline="none">

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import ParkIcon from '@mui/icons-material/Park';
-import { FormControl, Box } from '@mui/material';
+import { FormControl, Box, Typography } from '@mui/material';
 import { LoginContainer, Logo, LogoContainer, SignInButton, StyledLink, StyledTextField, Title } from './styles';
 import { AppRoutes } from '../../constants/Enums/AppRoutes';
 import { useAuth } from '../../context/AuthenticationContext';
@@ -11,6 +11,7 @@ const LoginPage: React.FC = () => {
     const [password, setPassword] = useState<string>('');
     const [emailError, setEmailError] = useState<string>('');
     const [passwordError, setPasswordError] = useState<string>('');
+    const [loginError, setLoginError] = useState<string>('');
     const navigate = useNavigate();
 
     const { login } = useAuth();
@@ -42,15 +43,13 @@ const LoginPage: React.FC = () => {
         }
 
         if (valid) {
-            try {
-                await login(email, password); // Call the login function with email and password
-                console.log('Logged in successfully');
-                // Redirect or show a success message after successful login
+            const response = await login(email, password);
 
+            if (response.success) {
+                setLoginError('');
                 navigate(AppRoutes.Home);
-            } catch (error) {
-                console.error('Login failed:', error);
-                // Handle login errors, e.g., show a notification or set an error state
+            } else {
+                setLoginError(response.message || 'Login failed. Please check your email and password and try again.');
             }
         }
     };
@@ -85,6 +84,24 @@ const LoginPage: React.FC = () => {
                     error={!!passwordError}
                     helperText={passwordError}
                 />
+                {loginError && (
+                    <Typography
+                        color="error"
+                        variant="body2"
+                        align="center"
+                        sx={{
+                            backgroundColor: 'rgba(255,64,129,0.1)',
+                            border: '1px solid #FF4081',
+                            borderRadius: '5px',
+                            padding: '10px',
+                            margin: '10px 0',
+                            fontWeight: 'bold',
+                            color: '#FF4081',
+                        }}
+                    >
+                        {loginError}
+                    </Typography>
+                )}
                 <Box display="flex" justifyContent="center">
                     <SignInButton type="submit" variant="contained">Sign in</SignInButton>
                 </Box>
@@ -94,7 +111,7 @@ const LoginPage: React.FC = () => {
             </StyledLink>
 
             <StyledLink href={`${AppRoutes.ForgottenPassword}`} underline="none">
-                Forgot password ? <span>Recover it</span>
+                Forgot password? <span>Recover it</span>
             </StyledLink>
         </LoginContainer>
     );

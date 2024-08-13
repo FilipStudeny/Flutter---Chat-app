@@ -32,3 +32,12 @@ export const headerTextStyles: SxProps<Theme> = {
     flexGrow: 1,
     textAlign: 'left',
 };
+
+export const sidebarToggleButtonStyles: SxProps<Theme> = {
+    position: 'fixed',
+    top: '80px',
+    bgcolor: 'background.paper',
+    borderRadius: '4px',
+    boxShadow: 1,
+    zIndex: 1000,
+};

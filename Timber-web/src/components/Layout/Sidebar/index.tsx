@@ -1,28 +1,42 @@
 import React from 'react';
-import { Box, Typography, IconButton, List } from '@mui/material';
+import { Box, Typography, IconButton } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
-import SidebarUserItem from '../../Cards/SidebarListItem';
+import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import {
     sidebarContainerStyles,
     sidebarHeaderStyles,
     closeButtonStyles,
     rightCloseButtonStyles,
     headerTextStyles,
-} from './styles'; 
+    sidebarToggleButtonStyles,
+} from './styles';
 
 interface SidebarProps {
-    users: Array<{
-        id: number;
-        name: string;
-        avatar: string;
-        online: boolean;
-    }>;
-    onClose: () => void; 
-    side: 'left' | 'right'; 
-    borderPosition: 'left' | 'right'; 
+    side: 'left' | 'right';
+    borderPosition: 'left' | 'right';
+    isOpen: boolean;
+    onToggle: () => void;
+    children?: React.ReactNode;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ users, onClose, side, borderPosition }) => {
+const Sidebar: React.FC<SidebarProps> = ({ side, borderPosition, isOpen, onToggle, children }) => {
+    if (!isOpen) {
+        return (
+            <IconButton
+                sx={{
+                    ...sidebarToggleButtonStyles,
+                    [side === 'left' ? 'left' : 'right']: 0,
+                    borderRadius: side === 'left' ? '0 4px 4px 0' : '4px 0 0 4px',
+                }}
+                onClick={onToggle}
+                aria-label={`open ${side} sidebar`}
+            >
+                {side === 'left' ? <ChevronRightIcon /> : <ChevronLeftIcon />}
+            </IconButton>
+        );
+    }
+
     return (
         <Box
             sx={{
@@ -39,7 +53,7 @@ const Sidebar: React.FC<SidebarProps> = ({ users, onClose, side, borderPosition 
                 }}
             >
                 {borderPosition === 'left' && (
-                    <IconButton sx={closeButtonStyles} onClick={onClose} aria-label="close">
+                    <IconButton sx={closeButtonStyles} onClick={onToggle} aria-label="close">
                         <CloseIcon />
                     </IconButton>
                 )}
@@ -50,20 +64,18 @@ const Sidebar: React.FC<SidebarProps> = ({ users, onClose, side, borderPosition 
                         textAlign: borderPosition === 'left' ? 'left' : 'right',
                     }}
                 >
-                    Online Users
+                    Sidebar
                 </Typography>
                 {borderPosition === 'right' && (
-                    <IconButton sx={rightCloseButtonStyles} onClick={onClose} aria-label="close">
+                    <IconButton sx={rightCloseButtonStyles} onClick={onToggle} aria-label="close">
                         <CloseIcon />
                     </IconButton>
                 )}
             </Box>
 
-            <List>
-                {users.map((user) => (
-                    <SidebarUserItem key={user.id} user={user} />
-                ))}
-            </List>
+            <Box sx={{ padding: 0 }}>
+                {children}
+            </Box>
         </Box>
     );
 };

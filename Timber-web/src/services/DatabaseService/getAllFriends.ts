@@ -1,4 +1,4 @@
-import { collection, DocumentData, Query, QuerySnapshot, query, where, startAfter, limit } from "@firebase/firestore";
+import { collection, DocumentData, Query, QuerySnapshot, query, where, startAfter, limit, getDoc, doc } from "@firebase/firestore";
 import { ServiceResponse } from "../../constants/Models/ServiceResponse";
 import { FirebaseFireStore } from "../../firebase";
 import { getDocs, DocumentSnapshot } from "firebase/firestore";
@@ -14,32 +14,42 @@ export interface UserDataModel {
   userGender: string;
 }
 
-export const getAllUsers = async ({ 
+export const getAllFriends = async ({ 
   limit: resultLimit = 10, 
   lastDocument, 
-  excludeId 
+  userId 
 }: { 
   limit?: number; 
   lastDocument?: DocumentSnapshot<DocumentData>; 
-  excludeId?: string; 
+  userId?: string; 
 } = {}): Promise<ServiceResponse<UserDataModel[]>> => {
   try {
-    const usersCollection = collection(FirebaseFireStore, "users");
+    const userDoc = await getDoc(doc(FirebaseFireStore, "users", userId!));
 
-    let userQuery: Query<DocumentData> = query(
-      usersCollection,
-      excludeId ? where("__name__", "!=", excludeId) : where("__name__", ">=", ""), // use ">=" if no excludeId
+    if (!userDoc.exists()) {
+      return { success: false, message: "User not found" };
+    }
+
+    const friends = userDoc.data()?.friends as string[] || [];
+
+    if (friends.length === 0) {
+      return { success: true, message: "No friends found", data: [] };
+    }
+
+    let friendQuery: Query<DocumentData> = query(
+      collection(FirebaseFireStore, "users"),
+      where("__name__", "in", friends),
       limit(resultLimit)
     );
 
     if (lastDocument) {
-      userQuery = query(userQuery, startAfter(lastDocument));
+      friendQuery = query(friendQuery, startAfter(lastDocument));
     }
 
-    const querySnapshot: QuerySnapshot<DocumentData> = await getDocs(userQuery);
+    const querySnapshot: QuerySnapshot<DocumentData> = await getDocs(friendQuery);
 
     if (!querySnapshot.empty) {
-      const users: UserDataModel[] = querySnapshot.docs.map(doc => {
+      const friendUsers: UserDataModel[] = querySnapshot.docs.map(doc => {
         const data = doc.data();
 
         return {
@@ -54,9 +64,9 @@ export const getAllUsers = async ({
         } as UserDataModel;
       });
 
-      return { success: true, data: users };
+      return { success: true, data: friendUsers };
     } else {
-      return { success: false, message: "No users found" };
+      return { success: false, message: "No friends found" };
     }
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : "An unknown error occurred";

@@ -4,6 +4,7 @@ import UserCard from '../../components/Cards/UserCard';
 import { calculateAge } from '../../constants/Models/UserDataModel';
 import { getAllUsers } from '../../services/DatabaseService/getAllUsers';
 import { getDatabase, ref, onValue } from 'firebase/database';
+import { useAuth } from '../../context/AuthenticationContext';
 
 export interface UserDataModel {
   uid: string;
@@ -23,12 +24,14 @@ const HomePage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const { currentUser } = useAuth();
+
   useEffect(() => {
     const fetchUsersWithOnlineStatus = async () => {
       setLoading(true);
       setError(null);
 
-      const response = await getAllUsers();
+      const response = await getAllUsers({excludeId: currentUser?.uid});
 
       if (response.success && response.data) {
         const updatedUsers = await Promise.all(
@@ -66,9 +69,9 @@ const HomePage: React.FC = () => {
 
     fetchUsersWithOnlineStatus();
 
-    const intervalId = setInterval(fetchUsersWithOnlineStatus, 10000);
+    // const intervalId = setInterval(fetchUsersWithOnlineStatus, 10000);
 
-    return () => clearInterval(intervalId);
+    // return () => clearInterval(intervalId);
   }, []);
 
   const handleRefresh = () => {

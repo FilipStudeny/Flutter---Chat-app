@@ -20,7 +20,7 @@ const Header: React.FC = () => {
     const { currentUser, logout } = useAuth();
 
     const handleProfileClick = () => {
-        navigate('/profile');
+        navigate(`/profile/${currentUser?.uid}`);
     };
 
     return (

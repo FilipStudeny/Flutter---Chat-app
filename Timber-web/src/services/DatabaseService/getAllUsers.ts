@@ -2,17 +2,7 @@ import { collection, DocumentData, Query, QuerySnapshot, query, where, startAfte
 import { ServiceResponse } from "../../constants/Models/ServiceResponse";
 import { FirebaseFireStore } from "../../firebase";
 import { getDocs, DocumentSnapshot } from "firebase/firestore";
-
-export interface UserDataModel {
-  uid: string;
-  profilePictureUrl: string;
-  username: string;
-  age: number;
-  gender: string;
-  online: boolean; 
-  email: string;
-  userGender: string;
-}
+import { UserDataModel } from "../../constants/Models/UserDataModel";
 
 export const getAllUsers = async ({ 
   limit: resultLimit = 10, 

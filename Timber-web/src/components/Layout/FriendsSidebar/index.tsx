@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { CircularProgress, List, ListItemAvatar, Avatar, ListItemText, Box } from '@mui/material';
-import { getAllFriends, UserDataModel } from '../../../services/DatabaseService/getAllFriends';
+import { getAllFriends } from '../../../services/DatabaseService/getAllFriends';
 import Sidebar from '../Sidebar';
 import { useAuth } from '../../../context/AuthenticationContext';
 import {
@@ -10,8 +10,9 @@ import {
     StyledButtonBase,
     UsernameText,
     OnlineStatusCircle,
-} from './styles'; // Import the styles from the new file
+} from './styles'; 
 import { useNavigate } from 'react-router-dom';
+import { UserDataModel } from '../../../constants/Models/UserDataModel';
 
 interface FriendsSidebarProps {
     side: 'left' | 'right';
@@ -63,11 +64,11 @@ const FriendsSidebar: React.FC<FriendsSidebarProps> = ({ side, borderPosition, i
                 <List>
                     {friends.map((friend) => (
                         <StyledListItem key={friend.uid}>
-                            <StyledButtonBase onClick={() => handleFriendClick(friend.uid)}>
+                            <StyledButtonBase onClick={() => handleFriendClick(friend.uid as string)}>
                                 <ListItemAvatar>
                                     <Box sx={{ position: 'relative', display: 'inline-block' }}>
                                         <Avatar alt={friend.username} src={friend.profilePictureUrl} />
-                                        <OnlineStatusCircle online={friend.online} />
+                                        <OnlineStatusCircle online={friend.online as boolean} />
                                     </Box>
                                 </ListItemAvatar>
                                 <ListItemText

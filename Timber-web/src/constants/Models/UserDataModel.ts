@@ -2,18 +2,24 @@ import { DocumentData, DocumentSnapshot } from "@firebase/firestore";
 import { Gender } from "../Enums/Gender";
 
 export interface UserDataModel {
-  id?: string;
+  uid?: string;
+  profilePictureUrl?: string;
+  username?: string;
   firstName?: string;
   lastName?: string;
-  username: string;
-  profilePictureUrl: string;
-  email: string;
+  age?: number;
+  gender?: string;
+  online?: boolean;
+  email?: string;
+  userGender?: Gender;
+  dateOfBirth?: Date; // Assuming you're converting Firestore timestamps to JavaScript Date objects
   aboutMe?: string;
-  userGender: Gender;
-  phoneNumber?: string;
-  friends?: string[];
-  dateOfBirth?: Date;
+  phoneNumber?: string | null; // Phone number can be null
+  friends?: string[]; // Assuming friends are stored as an array of user IDs
 }
+
+
+
 
 interface UserDocument {
   firstName?: string;
@@ -34,7 +40,7 @@ export const fromDocument = (doc: DocumentSnapshot<DocumentData>): UserDataModel
     throw new Error("Document data is undefined");
   }
   return {
-    id: doc.id,
+    uid: doc.id,
     firstName: data.firstName,
     lastName: data.lastName,
     username: data.username,
@@ -52,12 +58,12 @@ export const toMap = (user: UserDataModel): UserDocument => {
   return {
     firstName: user.firstName,
     lastName: user.lastName,
-    username: user.username,
-    profilePictureUrl: user.profilePictureUrl,
-    email: user.email,
+    username: user.username as string,
+    profilePictureUrl: user.profilePictureUrl as string,
+    email: user.email as string,
     aboutMe: user.aboutMe,
-    gender: _genderToString(user.userGender),
-    phoneNumber: user.phoneNumber,
+    gender: _genderToString(user.userGender as Gender),
+    phoneNumber: user.phoneNumber as string,
     friends: user.friends || [],
     dateOfBirth: user.dateOfBirth || null,
   };

@@ -1,12 +1,13 @@
 import { createBrowserRouter } from "react-router-dom";
-import WelcomePage from "./WelcomePage";
-import HomePage from "./HomePage";
-import LoginPage from "./LoginPage";
-import RegisterPage from "./RegisterPage";
+import WelcomePage from "./welcome";
+import HomePage from "./home";
+import LoginPage from "./sign-in";
+import RegisterPage from "./sign-up";
 import AppLayout from "../components/Layout/Layout";
 import { AppRoutes } from "../constants/Enums/AppRoutes";
 import ProtectedRoute from "./ProtectedRoute";
-import ForgotPasswordPage from "./ForgotenPasswordPage";
+import ForgotPasswordPage from "./forgotton-password";
+import UserProfilePage from "./profile/[id]";
 
 const routes = createBrowserRouter([
     { path: AppRoutes.Welcome, element: <WelcomePage /> },
@@ -22,6 +23,10 @@ const routes = createBrowserRouter([
                     {
                         path: AppRoutes.Home,
                         element: <HomePage />
+                    },
+                    {
+                        path: AppRoutes.Profile,
+                        element: <UserProfilePage />
                     },
                 ]
             },

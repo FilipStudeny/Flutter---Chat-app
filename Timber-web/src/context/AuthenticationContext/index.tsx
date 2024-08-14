@@ -13,6 +13,9 @@ import { createContext, ReactNode, FC, useContext, useState, useEffect } from 'r
 import { FirebaseAuth } from '../../firebase';
 import { getFirabaseAuthErrorMessage } from '../../constants/Errors/firebase-auth-errors';
 import { getDatabase, ref, set, onDisconnect, remove } from 'firebase/database';
+import { UserDataModel } from '../../constants/Models/UserDataModel';
+import { uploadFile } from '../../services/FileStorageService/uploadFile';
+import { createUser } from '../../services/DatabaseService/createUser';
 
 interface AuthResponse {
     success: boolean;
@@ -23,7 +26,7 @@ interface AuthResponse {
 interface AuthenticationContextType {
     currentUser: User | null;
     login: (email: string, password: string) => Promise<AuthResponse>;
-    signup: (email: string, password: string) => Promise<AuthResponse>;
+    signup: (newUser: UserDataModel, password: string, file: File | null) => Promise<AuthResponse>;
     logout: () => Promise<AuthResponse>;
     resetPassword: (email: string) => Promise<AuthResponse>;
     updateUserEmail: (email: string) => Promise<AuthResponse>;
@@ -92,9 +95,9 @@ export const AuthenticationProvider: FC<AuthenticationProviderProps> = ({ childr
         }
     };
 
-    const signup = async (email: string, password: string): Promise<AuthResponse> => {
+    const signup = async (newUser: UserDataModel, password: string, file: File | null): Promise<AuthResponse> => {
         try {
-            const userCredential = await createUserWithEmailAndPassword(FirebaseAuth, email, password);
+            const userCredential = await createUserWithEmailAndPassword(FirebaseAuth, newUser.email, password);
             setCurrentUser(userCredential.user);
 
             const userStatusRef = ref(database, `/status/${userCredential.user.uid}`);
@@ -102,6 +105,18 @@ export const AuthenticationProvider: FC<AuthenticationProviderProps> = ({ childr
                 online: true,
                 last_seen: Date.now()
             });
+
+            const photoUpload = await uploadFile(file, `users/${userCredential.user.uid}_photos`, Date.now().toString());
+            if (photoUpload.success == false){
+                return { success: false, message: "Couldn't upload photo, try again."};
+            }
+           
+            newUser.profilePictureUrl = photoUpload.data?.url as string;
+            newUser.uid = userCredential.user.uid;
+            const userCreation = await createUser(newUser.uid, newUser);
+            if (!userCreation.success) {
+                return { success: false, message: "Couldn't create user, try again." };
+            }
 
             return { success: true, user: userCredential.user };
         } catch (error) {

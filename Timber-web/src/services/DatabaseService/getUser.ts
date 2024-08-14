@@ -20,16 +20,21 @@ export const getUser = async (
     // Extract the user data
     const data = userDoc.data();
 
-    // Map the Firestore data to your UserDataModel
+    // Map the Firestore data to your UserProfile
     const user: UserDataModel = {
       uid: userDoc.id,
       profilePictureUrl: data?.profilePictureUrl || "",
       username: data?.username || "",
       age: data?.age || 0,
-      gender: data?.gender || "",
-      online: data?.online || false,
+      gender: data?.gender || "Other",
+      online: data?.online || false, // Assuming 'online' is a Firestore field, adjust if necessary
       email: data?.email || "",
-      userGender: data?.userGender || "",
+      firstName: data?.firstName || "",
+      lastName: data?.lastName || "",
+      phoneNumber: data?.phoneNumber || null,
+      aboutMe: data?.aboutMe || "",
+      friends: data?.friends || [],
+      dateOfBirth: data?.dateOfBirth ? new Date(data.dateOfBirth.seconds * 1000) : undefined, // Convert Firestore timestamp to Date
     };
 
     // Return the user data wrapped in a ServiceResponse

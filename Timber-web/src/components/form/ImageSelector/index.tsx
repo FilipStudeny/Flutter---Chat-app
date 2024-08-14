@@ -11,11 +11,11 @@ const StyledIconButtonWrapper = styled('div')({
     display: 'inline-block',
 });
 
-interface ImagePickerProps {
+interface ImageCropperProps {
     onImageCropped: (croppedImage: string) => void;
 }
 
-const ImagePicker: React.FC<ImagePickerProps> = ({ onImageCropped }) => {
+const ImageCropper: React.FC<ImageCropperProps> = ({ onImageCropped }) => {
     const [src, setSrc] = useState<string | null>(null);
     const [preview, setPreview] = useState<string | null>(null);
 
@@ -24,7 +24,6 @@ const ImagePicker: React.FC<ImagePickerProps> = ({ onImageCropped }) => {
         setPreview(null);
         onImageCropped(''); // Notify the parent that no image was selected
     };
-    
 
     const onCrop = (view: string) => {
         setPreview(view);
@@ -91,4 +90,47 @@ const ImagePicker: React.FC<ImagePickerProps> = ({ onImageCropped }) => {
     );
 };
 
-export default ImagePicker;
+interface ImagePickerProps {
+    onImageSelected: (file: File) => void;
+}
+
+const ImagePicker: React.FC<ImagePickerProps> = ({ onImageSelected }) => {
+    const [selectedImage, setSelectedImage] = useState<string | null>(null);
+
+    const onFileLoad = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (file) {
+            setSelectedImage(URL.createObjectURL(file)); // Display the selected image
+            onImageSelected(file); // Pass the file to the parent component
+        }
+    };
+
+    return (
+        <>
+            <Box display="flex" justifyContent="center" alignItems="center" mt={2} mb={2}>
+                <label htmlFor="upload-button">
+                    <StyledIconButtonWrapper>
+                        <IconButton color="primary" component="span">
+                            <PhotoCamera sx={{ color: 'white' }} />
+                        </IconButton>
+                    </StyledIconButtonWrapper>
+                </label>
+                <input
+                    type="file"
+                    id="upload-button"
+                    style={{ display: "none" }}
+                    accept="image/*"
+                    onChange={onFileLoad}
+                />
+            </Box>
+            {selectedImage && (
+                <Box mt={2} textAlign="center">
+                    <Typography variant="h6">Selected Image Preview:</Typography>
+                    <img src={selectedImage} alt="Selected Image" style={{ width: 100, height: 100, borderRadius: '50%' }} />
+                </Box>
+            )}
+        </>
+    );
+};
+
+export { ImagePicker, ImageCropper };

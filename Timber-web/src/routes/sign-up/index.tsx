@@ -6,15 +6,16 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import dayjs, { Dayjs } from 'dayjs';
 import { Logo, LogoContainer, SignInButton, StyledLink, Title, RegisterContainer, StyledTextField } from './styles';
 import ParkIcon from '@mui/icons-material/Park';
-import ImagePicker from '../../components/form/ImageSelector';
+import { ImagePicker } from '../../components/form/ImageSelector'; // Assuming ImageSelector contains ImagePicker
 import GenderSelector from '../../components/form/GenderSelector';
 import { Gender } from '../../constants/Enums/Gender';
 import { AppRoutes } from '../../constants/Enums/AppRoutes';
 import { useAuth } from '../../context/AuthenticationContext';
 import { useNavigate } from 'react-router-dom';
+import { UserDataModel } from '../../constants/Models/UserDataModel';
 
 const RegisterPage: React.FC = () => {
-    const [croppedImage, setCroppedImage] = useState<string | null>(null);
+    const [selectedImage, setSelectedImage] = useState<File | null>(null);
     const [selectedGender, setSelectedGender] = useState<Gender[]>([]);
     const [firstName, setFirstName] = useState<string>('');
     const [lastName, setLastName] = useState<string>('');
@@ -43,7 +44,7 @@ const RegisterPage: React.FC = () => {
                 !errors.aboutMe &&
                 !errors.dateOfBirth &&
                 !errors.gender &&
-                !errors.croppedImage &&
+                !errors.selectedImage &&
                 Boolean(firstName) &&
                 Boolean(lastName) &&
                 Boolean(username) &&
@@ -53,16 +54,16 @@ const RegisterPage: React.FC = () => {
                 Boolean(aboutMe) &&
                 Boolean(dateOfBirth) &&
                 selectedGender.length > 0 &&
-                Boolean(croppedImage);
+                Boolean(selectedImage);
 
             setIsFormValid(isValid);
         };
 
         checkFormValidity();
-    }, [errors, firstName, lastName, username, email, password, repeatPassword, aboutMe, dateOfBirth, selectedGender, croppedImage]);
+    }, [errors, firstName, lastName, username, email, password, repeatPassword, aboutMe, dateOfBirth, selectedGender, selectedImage]);
 
-    const handleImageCropped = (croppedImage: string) => {
-        setCroppedImage(croppedImage);
+    const handleImageSelected = (file: File) => {
+        setSelectedImage(file);
     };
 
     const handleGenderSelect = (genders: Gender[]) => {
@@ -92,7 +93,7 @@ const RegisterPage: React.FC = () => {
         }
 
         if (selectedGender.length === 0) newErrors.gender = 'Gender is required';
-        if (!croppedImage) newErrors.croppedImage = 'Profile Picture is required';
+        if (!selectedImage) newErrors.selectedImage = 'Profile Picture is required';
 
         setErrors(newErrors);
 
@@ -102,14 +103,27 @@ const RegisterPage: React.FC = () => {
     const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         if (validateForm()) {
-            const response = await signup(email, password);
+            const newUser: UserDataModel = {
+                uid: '', 
+                profilePictureUrl: '',
+                username,
+                firstName,
+                lastName,
+                email,
+                gender: selectedGender[0], 
+                dateOfBirth: dateOfBirth?.toDate(),
+                phoneNumber: null,
+                friends: [],
+                aboutMe,
+            };
+
+            const response = await signup(newUser, password, selectedImage);
             if (response.success) {
                 setsignUpError('');
                 navigate(AppRoutes.SignIn);
             } else {
-                setsignUpError(response.message || 'Login failed. Please check your email and password and try again.');
+                setsignUpError(response.message || 'Signup failed. Please try again.');
             }
-            
         }
     };
 
@@ -211,8 +225,8 @@ const RegisterPage: React.FC = () => {
                     {errors.gender && <Typography color="error">{errors.gender}</Typography>}
                 </Box>
                 <Box mb={2} display="flex" flexDirection={'column'} justifyContent="center" alignItems={'center'}>
-                    <ImagePicker onImageCropped={handleImageCropped} />
-                    {errors.croppedImage && <Typography color="error" sx={{ textAlign: 'center' }}>{errors.croppedImage}</Typography>}
+                    <ImagePicker onImageSelected={handleImageSelected} />
+                    {errors.selectedImage && <Typography color="error" sx={{ textAlign: 'center' }}>{errors.selectedImage}</Typography>}
                 </Box>
 
                 <Box display="flex" justifyContent="center">

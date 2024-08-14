@@ -12,7 +12,7 @@ export const getAllUsers = async ({
   limit?: number; 
   lastDocument?: DocumentSnapshot<DocumentData>; 
   excludeId?: string; 
-} = {}): Promise<ServiceResponse<UserDataModel[]>> => {
+} = {}): Promise<ServiceResponse<UserDataModel[]>> => { // Updated to return UserProfile[]
   try {
     const usersCollection = collection(FirebaseFireStore, "users");
 
@@ -33,14 +33,17 @@ export const getAllUsers = async ({
         const data = doc.data();
 
         return {
-          uid: doc.id, 
-          profilePictureUrl: data.profilePictureUrl,
-          username: data.username,
-          age: data.age,
-          gender: data.gender,
-          online: false, 
-          email: data.email,
-          userGender: data.userGender,
+          aboutMe: data.aboutMe || "", // Ensure default values if data is missing
+          age: data.age || 0, // Default age to 0 if not present
+          dateOfBirth: data.dateOfBirth ? new Date(data.dateOfBirth.seconds * 1000) : new Date(), // Convert Firestore timestamp to Date
+          email: data.email || "",
+          firstName: data.firstName || "",
+          friends: data.friends || [], // Ensure friends is an array
+          gender: data.gender || "Other", // Default to "Other" if not present
+          lastName: data.lastName || "",
+          phoneNumber: data.phoneNumber || null, // Allow null for phoneNumber
+          profilePictureUrl: data.profilePictureUrl || "",
+          username: data.username || "",
         } as UserDataModel;
       });
 

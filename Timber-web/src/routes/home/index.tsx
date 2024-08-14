@@ -1,26 +1,17 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Container, Button, Box, Typography, CircularProgress, Grid } from '@mui/material';
 import UserCard from '../../components/Cards/UserCard';
-import { calculateAge } from '../../constants/Models/UserDataModel';
 import { getAllUsers } from '../../services/DatabaseService/getAllUsers';
 import { getDatabase, ref, onValue } from 'firebase/database';
 import { useAuth } from '../../context/AuthenticationContext';
+import { calculateAge, UserDataModel } from '../../constants/Models/UserDataModel';
 
-export interface UserDataModel {
-  uid: string;
-  profilePictureUrl: string;
-  username: string;
-  age: number;
-  gender: string;
-  online: boolean;
-  email: string;
-  userGender: string;
-  dateOfBirth?: Date;
-
+interface UserModel extends UserDataModel{
+  online: boolean
 }
 
 const HomePage: React.FC = () => {
-  const [users, setUsers] = useState<UserDataModel[]>([]);
+  const [users, setUsers] = useState<UserModel[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -31,14 +22,14 @@ const HomePage: React.FC = () => {
       setLoading(true);
       setError(null);
 
-      const response = await getAllUsers({excludeId: currentUser?.uid});
+      const response = await getAllUsers({ excludeId: currentUser?.uid });
 
       if (response.success && response.data) {
         const updatedUsers = await Promise.all(
           response.data.map(async (user) => {
             const userStatusRef = ref(getDatabase(), `/status/${user.uid}`);
 
-            return new Promise<UserDataModel>((resolve) => {
+            return new Promise<UserModel>((resolve) => {
               onValue(userStatusRef, (snapshot) => {
                 const status = snapshot.val();
                 resolve({
@@ -50,16 +41,7 @@ const HomePage: React.FC = () => {
           })
         );
 
-        // Update the users state only if data has changed
-        setUsers((prevUsers) => {
-          const newUsers = updatedUsers.map((newUser) => {
-            const existingUser = prevUsers.find((user) => user.uid === newUser.uid);
-            return existingUser && existingUser.online === newUser.online
-              ? existingUser // Return the existing user if the online status hasn't changed
-              : newUser; // Otherwise, update with the new user data
-          });
-          return newUsers;
-        });
+        setUsers(updatedUsers);
       } else {
         setError(response.message || 'Failed to load users.');
       }
@@ -68,11 +50,7 @@ const HomePage: React.FC = () => {
     };
 
     fetchUsersWithOnlineStatus();
-
-    // const intervalId = setInterval(fetchUsersWithOnlineStatus, 10000);
-
-    // return () => clearInterval(intervalId);
-  }, []);
+  }, [currentUser]);
 
   const handleRefresh = () => {
     setUsers([]);

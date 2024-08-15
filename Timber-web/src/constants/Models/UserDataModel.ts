@@ -1,17 +1,18 @@
 import { Gender } from "../Enums/Gender";
 
 export interface UserDataModel {
-	uid: string;
-	profilePictureUrl: string;
-	username: string;
-	gender: Gender;
-	email: string;
+	uid?: string;
+	profilePictureUrl?: string;
+	username?: string;
+	gender?: Gender;
+	email?: string;
 	dateOfBirth?: Date;
-	friends: string[];
-	firstName: string;
-	lastName: string;
-	phoneNumber: string | null;
-	aboutMe: string;
+	friends?: string[];
+	firstName?: string;
+	lastName?: string;
+	phoneNumber?: string | null;
+	aboutMe?: string;
+	onlineStatus?: boolean | null;
 }
 
 export const calculateAge = (dateOfBirth: Date | undefined): number | undefined => {

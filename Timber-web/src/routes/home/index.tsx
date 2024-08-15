@@ -1,11 +1,12 @@
 import { Container, Button, Box, Typography, CircularProgress, Grid } from "@mui/material";
 import { getDatabase, ref, onValue } from "firebase/database";
 import React, { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 import UserCard from "../../components/Cards/UserCard";
 import { calculateAge, UserDataModel } from "../../constants/Models/UserDataModel";
 import { useAuth } from "../../context/AuthenticationContext";
-import { getAllUsers } from "../../services/DatabaseService/getAllUsers";
+import getAllUsers from "../../services/DatabaseService/getAllUsers";
 
 interface UserModel extends UserDataModel {
 	online: boolean;
@@ -17,6 +18,7 @@ const HomePage: React.FC = () => {
 	const [error, setError] = useState<string | null>(null);
 
 	const { currentUser } = useAuth();
+	const navigate = useNavigate();
 
 	useEffect(() => {
 		const fetchUsersWithOnlineStatus = async () => {
@@ -27,7 +29,7 @@ const HomePage: React.FC = () => {
 
 			if (response.success && response.data) {
 				const updatedUsers = await Promise.all(
-					response.data.map(async (user) => {
+					response.data.map(async (user: UserDataModel) => {
 						const userStatusRef = ref(getDatabase(), `/status/${user.uid}`);
 
 						return new Promise<UserModel>((resolve) => {
@@ -63,12 +65,13 @@ const HomePage: React.FC = () => {
 			users.map((user) => (
 				<Grid item key={user.uid}>
 					<UserCard
-						photoUrl={user.profilePictureUrl}
-						username={user.username}
+						photoUrl={user.profilePictureUrl as string}
+						username={user.username as string}
 						clickable
 						horizontal={false}
 						age={calculateAge(user.dateOfBirth) as number}
 						online={user.online}
+						onClick={() => navigate(`/profile/${user.uid}`)}
 					/>
 				</Grid>
 			)),

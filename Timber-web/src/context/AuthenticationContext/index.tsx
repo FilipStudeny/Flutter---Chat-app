@@ -98,7 +98,11 @@ export const AuthenticationProvider: FC<AuthenticationProviderProps> = ({ childr
 
 	const signup = async (newUser: UserDataModel, password: string, file: File | null): Promise<AuthResponse> => {
 		try {
-			const userCredential = await createUserWithEmailAndPassword(FirebaseAuth, newUser.email, password);
+			const userCredential = await createUserWithEmailAndPassword(
+				FirebaseAuth,
+				newUser.email as string,
+				password,
+			);
 			setCurrentUser(userCredential.user);
 
 			const userStatusRef = ref(database, `/status/${userCredential.user.uid}`);
@@ -162,7 +166,6 @@ export const AuthenticationProvider: FC<AuthenticationProviderProps> = ({ childr
 			await updatePassword(currentUser as User, password);
 			return { success: true };
 		} catch (error) {
-			console.error("Failed to update password", error);
 			return { success: false, message: (error as Error).message };
 		}
 	};
@@ -172,11 +175,11 @@ export const AuthenticationProvider: FC<AuthenticationProviderProps> = ({ childr
 			await sendPasswordResetEmail(FirebaseAuth, email);
 			return { success: true };
 		} catch (error) {
-			console.error("Failed to reset password", error);
 			return { success: false, message: (error as Error).message };
 		}
 	};
 
+	// eslint-disable-next-line react/jsx-no-constructed-context-values
 	const value: AuthenticationContextType = {
 		currentUser,
 		login,

@@ -65,14 +65,16 @@ module.exports = {
 		"no-shadow": "off",
 		"react/prop-types": "off",
 		"@typescript-eslint/no-shadow": "off",
-		"import/no-extraneous-dependencies": ["error", { devDependencies: true }],
 		"react/jsx-filename-extension": [1, { extensions: [".tsx", ".ts"] }],
 		"no-loop-func": "off",
 		"unused-imports/no-unused-imports": "error",
 		"jsx-a11y/control-has-associated-label": "off",
 		"jsx-a11y/label-has-associated-control": "off",
+		"jsx-a11y/click-events-have-key-events": "off",
 		"no-param-reassign": "off",
 		"no-nested-ternary": "off",
+		"import/no-extraneous-dependencies": "off",
+		"jsx-a11y/no-noninteractive-element-interactions": "off",
 		"unused-imports/no-unused-vars": [
 			"warn",
 			{

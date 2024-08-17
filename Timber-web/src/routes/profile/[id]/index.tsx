@@ -1,217 +1,558 @@
-import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
-import {
-    Container,
-    Typography,
-    Box,
-    Avatar,
-    Grid,
-    Modal,
-    IconButton,
-    CircularProgress,
-    Paper
-} from '@mui/material';
-import CloseIcon from '@mui/icons-material/Close';
-import DownloadIcon from '@mui/icons-material/Download';
-import { getUser } from '../../../services/DatabaseService/getUser';
-import { UserDataModel } from '../../../constants/Models/UserDataModel';
+import CloseIcon from "@mui/icons-material/Close";
+import CloudUploadIcon from "@mui/icons-material/CloudUpload";
+import DownloadIcon from "@mui/icons-material/Download";
+import EditIcon from "@mui/icons-material/Edit";
+import RemoveCircleOutlineIcon from "@mui/icons-material/RemoveCircleOutline";
+import SaveIcon from "@mui/icons-material/Save";
+import { Container, Typography, Box, Avatar, Grid, IconButton, Paper, Button, TextField, Dialog, Modal } from "@mui/material";
+import React, { useEffect, useState, ChangeEvent } from "react";
+import toast, { Toaster } from "react-hot-toast";
+import { useParams } from "react-router-dom";
+
+import { calculateAge, UserDataModel } from "../../../constants/Models/UserDataModel";
+import { useAuth } from "../../../context/AuthenticationContext";
+import getUser from "../../../services/DatabaseService/getUser";
+import updateProfile from "../../../services/DatabaseService/updateProfile";
+import updateProfilePicture from "../../../services/DatabaseService/updateProfilePicture";
+import getUserPhotos from "../../../services/FileStorageService/getUserPhotos";
+import { FileMetadata, uploadFile } from "../../../services/FileStorageService/uploadFile";
 
 const UserProfilePage: React.FC = () => {
-    const { id } = useParams<{ id: string }>();
-    const [openModal, setOpenModal] = useState(false);
-    const [photoUrl, setPhotoUrl] = useState<string | null>(null);
-    const [user, setUser] = useState<UserDataModel | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+	const { id } = useParams<{ id: string }>();
+	const { currentUser } = useAuth();
 
-    useEffect(() => {
-        const fetchUser = async () => {
-            if (id) {
-                const response = await getUser(id);
-                if (response.success && response.data) {
-                    setUser(response.data);
-                } else {
-                    setError(response.message || 'Failed to load user data.');
-                }
-                setLoading(false);
-            }
-        };
+	const [user, setUser] = useState<UserDataModel | null>(null);
+	const [uploadedPictures, setUploadedPictures] = useState<FileMetadata[]>([]);
+	const [newProfilePicture, setNewProfilePicture] = useState<File | null>(null);
+	const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+	const [openPhotoSelectionModal, setOpenPhotoSelectionModal] = useState(false);
+	const [editModalOpen, setEditModalOpen] = useState(false);
+	const [selectedUploadedPicture, setSelectedUploadedPicture] = useState<string | null>(null);
 
-        fetchUser();
-    }, [id]);
+	const [updatedUserData, setUpdatedUserData] = useState({
+		firstName: "",
+		lastName: "",
+		email: "",
+		profilePictureUrl: "",
+	});
 
-    const handleOpenModal = (photoUrl: string) => {
-        setPhotoUrl(photoUrl);
-        setOpenModal(true);
-    };
+	useEffect(() => {
+		const fetchUserData = async () => {
+			if (id) {
+				try {
+					const userResponse = await getUser(id);
+					const photosResponse = await getUserPhotos(id);
+					if (userResponse.success && userResponse.data) {
+						setUser(userResponse.data);
+						setUpdatedUserData({
+							firstName: userResponse.data.firstName || "",
+							lastName: userResponse.data.lastName || "",
+							email: userResponse.data.email || "",
+							profilePictureUrl: userResponse.data.profilePictureUrl || "",
+						});
+					} else {
+						throw new Error(userResponse.message || "Failed to load user data.");
+					}
 
-    const handleCloseModal = () => {
-        setOpenModal(false);
-    };
+					if (photosResponse.success && photosResponse.data) {
+						setUploadedPictures(photosResponse.data);
+					} else {
+						throw new Error(photosResponse.message || "Failed to load user photos.");
+					}
+				} catch (err) {
+					toast.error(err instanceof Error ? err.message : "Unknown error occurred");
+				}
+			}
+		};
+		fetchUserData();
+	}, [id]);
 
-    const handleDownloadPhoto = () => {
-        if (photoUrl) {
-            const link = document.createElement('a');
-            link.href = photoUrl;
-            link.download = 'photo.jpg'; // Customize the downloaded file name
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link); // Clean up the DOM by removing the link element
-        }
-    };
+	const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+		const { name, value } = event.target;
+		setUpdatedUserData((prevState) => ({
+			...prevState,
+			[name]: value,
+		}));
+	};
 
-    if (loading) {
-        return (
-            <Container maxWidth="sm">
-                <Box display="flex" justifyContent="center" mt={4}>
-                    <CircularProgress />
-                </Box>
-            </Container>
-        );
-    }
+	const handleDownloadPhoto = () => {
+		if (photoUrl) {
+			const link = document.createElement("a");
+			link.href = photoUrl;
+			link.download = "photo.jpg";
+			document.body.appendChild(link);
+			link.click();
+			document.body.removeChild(link); 
+		}
+	};
 
-    if (error) {
-        return (
-            <Container maxWidth="sm">
-                <Box display="flex" justifyContent="center" mt={4}>
-                    <Typography variant="body1" color="error">
-                        {error}
-                    </Typography>
-                </Box>
-            </Container>
-        );
-    }
+	const handleProfileUpdate = async () => {
+		const response = await updateProfile(user?.uid as string, updatedUserData);
+		if (response.success) {
+			setUser({ ...user, ...updatedUserData });
+			setEditModalOpen(false);
+			toast.success("Profile updated successfully.");
+		} else {
+			toast.error(response.message || "Failed to update profile.");
+		}
+	};
 
-    return (
-        <Container maxWidth="md">
-            <Box display="flex" flexDirection="column" alignItems="center" pt={2}>
-                <Box sx={{ position: 'relative' }}>
-                    <Avatar
-                        alt={user?.firstName + ' ' + user?.lastName}
-                        src={user?.profilePictureUrl}
-                        sx={{ width: 150, height: 150, borderRadius: '8px', cursor: 'pointer' }}
-                        onClick={() => handleOpenModal(user?.profilePictureUrl || '')}
-                        variant="square"
-                    />
-                    <Typography
-                        sx={{
-                            position: 'absolute',
-                            bottom: 0,
-                            left: 0,
-                            backgroundColor: 'rgba(0, 0, 0, 0.6)',
-                            color: '#fff',
-                            padding: '4px 8px',
-                            borderRadius: '0 0 8px 8px',
-                        }}
-                    >
-                        {user?.username}, {user?.age}
-                    </Typography>
-                </Box>
-                <Paper elevation={2} sx={{ mt: 2, p: 2, width: '100%' }}>
-                    <Typography variant="h6" gutterBottom>
-                        User Info
-                    </Typography>
-                    <Typography variant="body2" color="textSecondary">
-                        <strong>Name:</strong> {user?.firstName} {user?.lastName}
-                    </Typography>
-                    <Typography variant="body2" color="textSecondary">
-                        <strong>Email:</strong> {user?.email}
-                    </Typography>
-                    <Typography variant="body2" color="textSecondary">
-                        <strong>Date of Birth:</strong>{' '}
-                        {user?.dateOfBirth ? user.dateOfBirth.toLocaleDateString() : 'N/A'}
-                    </Typography>
-                </Paper>
+	const handleProfilePictureChange = (event: ChangeEvent<HTMLInputElement>) => {
+		if (event.target.files && event.target.files[0]) {
+			setNewProfilePicture(event.target.files[0]);
+			setSelectedUploadedPicture(null); 
+		}
+	};
 
-                <Paper elevation={2} sx={{ mt: 4, p: 2, width: '100%' }}>
-                    <Typography variant="h6">About Me</Typography>
-                    <Typography variant="body1" mt={1}>
-                        {user?.aboutMe}
-                    </Typography>
-                </Paper>
+	const reloadUserData = async () => {
+		if (id) {
+			const userResponse = await getUser(id);
+			if (userResponse.success && userResponse.data) {
+				setUser(userResponse.data);
+			}
+		}
+	};
 
-                <Paper elevation={2} sx={{ mt: 4, p: 2, width: '100%' }}>
-                    <Typography variant="h6">Photos</Typography>
-                    <Grid container spacing={2} mt={1}>
-                        <Grid item>
-                            <Avatar
-                                alt={user?.username}
-                                src={user?.profilePictureUrl}
-                                sx={{ width: 100, height: 100, borderRadius: '8px', cursor: 'pointer' }}
-                                onClick={() => handleOpenModal(user?.profilePictureUrl || '')}
-                                variant="square"
-                            />
-                        </Grid>
-                        {/* Add more photos as needed */}
-                        <Grid item>
-                            <Avatar
-                                sx={{ width: 100, height: 100, backgroundColor: '#e0e0e0', borderRadius: '8px' }}
-                                variant="square"
-                            >
-                                +
-                            </Avatar>
-                        </Grid>
-                    </Grid>
-                </Paper>
-            </Box>
+	const handleSaveNewProfilePicture = async () => {
+		if (newProfilePicture) {
+			const fileName = `${currentUser?.uid}_${new Date().getTime()}`;
+			const fileDir = `users/${currentUser?.uid}_photos`;
+			const fileUploadResponse = await uploadFile(newProfilePicture, fileDir, fileName);
 
-            <Modal
-                open={openModal}
-                onClose={handleCloseModal}
-                sx={{
-                    display: 'flex',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                }}
-            >
-                <Box
-                    sx={{
-                        position: 'fixed',
-                        top: 0,
-                        left: 0,
-                        width: '100vw',
-                        height: '100vh',
-                        display: 'flex',
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                        bgcolor: 'rgba(0, 0, 0, 0.9)', // Semi-transparent black background
-                    }}
-                    onClick={handleCloseModal} // Close modal when clicking outside the image
-                >
-                    <IconButton
-                        onClick={handleCloseModal}
-                        sx={{
-                            position: 'fixed',
-                            top: '16px',
-                            right: '16px',
-                            color: 'white',
-                            fontSize: '32px',
-                        }}
-                    >
-                        <CloseIcon fontSize="inherit" />
-                    </IconButton>
-                    <IconButton
-                        onClick={handleDownloadPhoto}
-                        sx={{
-                            position: 'fixed',
-                            top: '16px',
-                            left: '16px',
-                            color: 'white',
-                            fontSize: '32px',
-                        }}
-                    >
-                        <DownloadIcon fontSize="inherit" />
-                    </IconButton>
-                    <img
-                        src={photoUrl as string}
-                        alt="User Photo"
-                        style={{ maxWidth: '90%', maxHeight: '90%', borderRadius: '8px', cursor: 'auto' }}
-                        onClick={(e) => e.stopPropagation()} // Prevent closing when clicking on the image
-                    />
-                </Box>
-            </Modal>
-        </Container>
-    );
+			if (fileUploadResponse.success) {
+				const url = fileUploadResponse.data?.url;
+				const updateResponse = await updateProfilePicture(currentUser?.uid as string, url as string);
+
+				if (updateResponse.success) {
+					setUpdatedUserData((prevState) => ({
+						...prevState,
+						profilePictureUrl: url as string,
+					}));
+					setOpenPhotoSelectionModal(false);
+					toast.success("Profile picture updated successfully.");
+					reloadUserData();
+				} else {
+					toast.error(updateResponse.message || "Failed to update profile picture.");
+				}
+			} else {
+				toast.error(fileUploadResponse.message || "Failed to upload profile picture.");
+			}
+		}
+	};
+
+	const handleSelectUploadedPicture = (url: string) => {
+		setSelectedUploadedPicture(url);
+		setNewProfilePicture(null);
+	};
+
+	const handleConfirmSelectUploadedPicture = async () => {
+		if (selectedUploadedPicture) {
+			const updateResponse = await updateProfilePicture(currentUser?.uid as string, selectedUploadedPicture);
+			if (updateResponse.success) {
+				setUpdatedUserData((prevState) => ({
+					...prevState,
+					profilePictureUrl: selectedUploadedPicture,
+				}));
+				setOpenPhotoSelectionModal(false);
+				toast.success("Profile picture updated successfully.");
+				reloadUserData();
+			} else {
+				toast.error(updateResponse.message || "Failed to update profile picture.");
+			}
+		}
+	};
+
+	const handleOpenModal = (url: string) => {
+		setPhotoUrl(url);
+	};
+
+	const handleCloseModal = () => {
+		setPhotoUrl(null);
+	};
+
+	const handleOpenPhotoSelectionModal = () => {
+		setOpenPhotoSelectionModal(true);
+	};
+
+	const handleClosePhotoSelectionModal = () => {
+		setOpenPhotoSelectionModal(false);
+		setNewProfilePicture(null);
+		setSelectedUploadedPicture(null);
+	};
+
+	return (
+		<>
+			<Toaster />
+			<Container maxWidth='md'>
+				<Box display='flex' flexDirection='column' alignItems='center' pt={2}>
+					<Box sx={{ position: "relative" }}>
+						<Avatar
+							alt={`${user?.firstName} ${user?.lastName}`}
+							src={user?.profilePictureUrl}
+							sx={{ width: 150, height: 150, borderRadius: "8px", cursor: "pointer" }}
+							onClick={handleOpenPhotoSelectionModal}
+							variant='square'
+						/>
+						<Typography
+							sx={{
+								position: "absolute",
+								bottom: 0,
+								left: 0,
+								backgroundColor: "rgba(0, 0, 0, 0.6)",
+								color: "#fff",
+								padding: "4px 8px",
+								borderRadius: "0 0 8px 8px",
+							}}
+						>
+							{user?.username}, {calculateAge(user?.dateOfBirth)}
+						</Typography>
+					</Box>
+
+					<Paper elevation={2} sx={{ mt: 2, p: 2, width: "100%" }}>
+						<Box display='flex' justifyContent='space-between' alignItems='center'>
+							<Typography variant='h6' gutterBottom>
+								User Info
+							</Typography>
+							{currentUser?.uid === user?.uid && (
+								<IconButton onClick={() => setEditModalOpen(true)}>
+									<EditIcon />
+								</IconButton>
+							)}
+						</Box>
+						<Typography variant='body2' color='textSecondary'>
+							<strong>Name:</strong> {user?.firstName} {user?.lastName}
+						</Typography>
+						<Typography variant='body2' color='textSecondary'>
+							<strong>Email:</strong> {user?.email}
+						</Typography>
+						<Typography variant='body2' color='textSecondary'>
+							<strong>Date of Birth:</strong> {user?.dateOfBirth?.toLocaleDateString() || "N/A"}
+						</Typography>
+					</Paper>
+
+					<Paper elevation={2} sx={{ mt: 4, p: 2, width: "100%" }}>
+						<Box display='flex' justifyContent='space-between' alignItems='center'>
+							<Typography variant='h6'>About Me</Typography>
+							{currentUser?.uid === user?.uid && (
+								<IconButton onClick={() => setEditModalOpen(true)}>
+									<EditIcon />
+								</IconButton>
+							)}
+						</Box>
+						<Typography variant='body1' mt={1}>
+							{user?.aboutMe || "No information provided."}
+						</Typography>
+					</Paper>
+
+					<Paper elevation={2} sx={{ mt: 4, p: 2, width: "100%" }}>
+						<Typography variant='h6'>Photos</Typography>
+						<Grid container spacing={2} mt={1}>
+							{uploadedPictures.map((picture) => (
+								<Grid item key={picture.name || picture.url}>
+									<Avatar
+										alt={user?.username}
+										src={picture.url}
+										sx={{ width: 100, height: 100, borderRadius: "8px", cursor: "pointer" }}
+										onClick={() => handleOpenModal(picture.url)}
+										variant='square'
+									/>
+								</Grid>
+							))}
+							{/* Add button to upload new photos */}
+							{currentUser?.uid === user?.uid && (
+								<Grid item>
+									<Avatar
+										sx={{
+											width: 100,
+											height: 100,
+											backgroundColor: "#e0e0e0",
+											borderRadius: "8px",
+										}}
+										variant='square'
+										onClick={handleOpenPhotoSelectionModal}
+									>
+										+
+									</Avatar>
+								</Grid>
+							)}
+						</Grid>
+					</Paper>
+				</Box>
+
+				{/* Modal for viewing photo */}
+				<Modal
+					open={Boolean(photoUrl)}
+					onClose={handleCloseModal}
+					sx={{
+						display: "flex",
+						justifyContent: "center",
+						alignItems: "center",
+					}}
+				>
+					<Box
+						sx={{
+							position: "fixed",
+							top: 0,
+							left: 0,
+							width: "100vw",
+							height: "100vh",
+							display: "flex",
+							justifyContent: "center",
+							alignItems: "center",
+							bgcolor: "rgba(0, 0, 0, 0.9)", 
+						}}
+						onClick={handleCloseModal} 
+					>
+						<IconButton
+							onClick={handleCloseModal}
+							sx={{
+								position: "fixed",
+								top: "16px",
+								right: "16px",
+								color: "white",
+								fontSize: "32px",
+							}}
+						>
+							<CloseIcon fontSize='inherit' />
+						</IconButton>
+						<IconButton
+							onClick={handleDownloadPhoto}
+							sx={{
+								position: "fixed",
+								top: "16px",
+								left: "16px",
+								color: "white",
+								fontSize: "32px",
+							}}
+						>
+							<DownloadIcon fontSize='inherit' />
+						</IconButton>
+						<img
+							src={photoUrl as string}
+							alt='User'
+							style={{ maxWidth: "90%", maxHeight: "90%", borderRadius: "8px", cursor: "auto" }}
+							onClick={(e) => e.stopPropagation()}
+						/>
+					</Box>
+				</Modal>
+
+				{/* Modal for editing profile */}
+				<Dialog open={editModalOpen} onClose={() => setEditModalOpen(false)} fullWidth maxWidth='sm'>
+					<Box sx={{ p: 4 }}>
+						<Typography variant='h6' gutterBottom>
+							Edit Profile
+						</Typography>
+						<TextField
+							label='First Name'
+							name='firstName'
+							value={updatedUserData.firstName}
+							onChange={handleInputChange}
+							fullWidth
+							margin='normal'
+						/>
+						<TextField
+							label='Last Name'
+							name='lastName'
+							value={updatedUserData.lastName}
+							onChange={handleInputChange}
+							fullWidth
+							margin='normal'
+						/>
+						<TextField
+							label='Email'
+							name='email'
+							value={updatedUserData.email}
+							onChange={handleInputChange}
+							fullWidth
+							margin='normal'
+						/>
+						<TextField
+							label='Profile Picture URL'
+							name='profilePictureUrl'
+							value={updatedUserData.profilePictureUrl}
+							onChange={handleInputChange}
+							fullWidth
+							margin='normal'
+						/>
+						<Box display='flex' justifyContent='space-between' mt={2}>
+							<Button onClick={() => setEditModalOpen(false)} color='secondary'>
+								Cancel
+							</Button>
+							<Button onClick={handleProfileUpdate} variant='contained' color='primary'>
+								Save
+							</Button>
+						</Box>
+					</Box>
+				</Dialog>
+
+				{/* Modal for selecting and uploading new profile picture */}
+				<Dialog open={openPhotoSelectionModal} onClose={handleClosePhotoSelectionModal} fullWidth maxWidth='sm'>
+					<Box sx={{ p: 4, textAlign: "center" }}>
+						<Box display='flex' justifyContent='space-between' alignItems='center' mb={2}>
+							<Typography variant='h6' sx={{ fontWeight: "bold", fontSize: "1.2rem" }}>
+								Change Profile Picture
+							</Typography>
+							<IconButton onClick={handleClosePhotoSelectionModal}>
+								<CloseIcon />
+							</IconButton>
+						</Box>
+
+						<input
+							accept='image/*'
+							style={{ display: "none" }}
+							id='upload-profile-picture'
+							type='file'
+							onChange={handleProfilePictureChange}
+						/>
+						<label htmlFor='upload-profile-picture'>
+							<Button
+								variant='contained'
+								component='span'
+								startIcon={<CloudUploadIcon />}
+								sx={{
+									background:
+										"linear-gradient(45deg, rgba(255,64,129,1) 0%, rgba(255,105,135,1) 100%)",
+									color: "white",
+									width: "100%",
+									mb: 3,
+									"&:hover": {
+										background:
+											"linear-gradient(45deg, rgba(255,64,129,0.8) 0%, rgba(255,105,135,0.8) 100%)",
+									},
+								}}
+							>
+								Upload New Picture
+							</Button>
+						</label>
+
+						{(newProfilePicture || selectedUploadedPicture) && (
+							<Box
+								sx={{
+									display: "flex",
+									justifyContent: "center",
+									mb: 2,
+									overflow: "hidden",
+								}}
+							>
+								<img
+									src={
+										newProfilePicture
+											? (URL.createObjectURL(newProfilePicture) as string)
+											: (selectedUploadedPicture as string)
+									}
+									alt='Selected'
+									style={{
+										width: "120px",
+										height: "120px",
+										objectFit: "cover",
+									}}
+								/>
+							</Box>
+						)}
+
+						{newProfilePicture && (
+							<Box display='flex' justifyContent='space-between' gap={2} mb={2}>
+								<Button
+									variant='outlined'
+									color='secondary'
+									startIcon={<RemoveCircleOutlineIcon />}
+									onClick={() => setNewProfilePicture(null)}
+									sx={{
+										flex: 1,
+										color: "#f44336",
+										borderColor: "#f44336",
+										"&:hover": {
+											backgroundColor: "rgba(244, 67, 54, 0.1)",
+											borderColor: "#f44336",
+										},
+									}}
+								>
+									Remove
+								</Button>
+								<Button
+									variant='contained'
+									color='primary'
+									startIcon={<SaveIcon />}
+									onClick={handleSaveNewProfilePicture}
+									sx={{
+										flex: 1,
+										background:
+											"linear-gradient(45deg, rgba(255,64,129,1) 0%, rgba(255,105,135,1) 100%)",
+										color: "white",
+										"&:hover": {
+											background:
+												"linear-gradient(45deg, rgba(255,64,129,0.8) 0%, rgba(255,105,135,0.8) 100%)",
+										},
+									}}
+								>
+									Save
+								</Button>
+							</Box>
+						)}
+
+						{selectedUploadedPicture && !newProfilePicture && (
+							<Button
+								variant='contained'
+								color='primary'
+								startIcon={<SaveIcon />}
+								onClick={handleConfirmSelectUploadedPicture}
+								sx={{
+									background:
+										"linear-gradient(45deg, rgba(255,64,129,1) 0%, rgba(255,105,135,1) 100%)",
+									color: "white",
+									width: "100%",
+									mb: 2,
+									"&:hover": {
+										background:
+											"linear-gradient(45deg, rgba(255,64,129,0.8) 0%, rgba(255,105,135,0.8) 100%)",
+									},
+								}}
+							>
+								Select Profile Picture
+							</Button>
+						)}
+
+						<Typography
+							variant='h6'
+							mt={3}
+							mb={2}
+							gutterBottom
+							sx={{ fontWeight: "bold", fontSize: "1.2rem" }}
+						>
+							Choose from Uploaded Pictures
+						</Typography>
+						<Grid container spacing={2} justifyContent='center'>
+							{uploadedPictures.map((picture) => (
+								<Grid item key={picture.name || picture.url}>
+									<Box
+										sx={{
+											width: 70,
+											height: 70,
+											overflow: "hidden",
+											"&:hover": { borderColor: "#ff4081" },
+											boxShadow: "0px 2px 8px rgba(0, 0, 0, 0.1)",
+											cursor: "pointer",
+										}}
+										onClick={() => handleSelectUploadedPicture(picture.url)}
+									>
+										<img
+											src={picture.url}
+											alt='Uploaded'
+											style={{
+												width: "100%",
+												height: "100%",
+												objectFit: "cover",
+											}}
+										/>
+									</Box>
+								</Grid>
+							))}
+						</Grid>
+					</Box>
+				</Dialog>
+			</Container>
+		</>
+	);
 };
 
 export default UserProfilePage;

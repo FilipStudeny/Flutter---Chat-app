@@ -21,3 +21,5 @@ export const calculateAge = (dateOfBirth: Date | undefined): number | undefined 
 	const ageDt = new Date(diff);
 	return Math.abs(ageDt.getUTCFullYear() - 1970);
 };
+
+export const genderToString = (gender: Gender): string => gender.toLowerCase();

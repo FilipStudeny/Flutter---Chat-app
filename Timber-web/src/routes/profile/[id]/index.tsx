@@ -1,10 +1,28 @@
+import AddPhotoAlternateIcon from "@mui/icons-material/AddPhotoAlternate";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import CloseIcon from "@mui/icons-material/Close";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import DownloadIcon from "@mui/icons-material/Download";
 import EditIcon from "@mui/icons-material/Edit";
 import RemoveCircleOutlineIcon from "@mui/icons-material/RemoveCircleOutline";
 import SaveIcon from "@mui/icons-material/Save";
-import { Container, Typography, Box, Avatar, Grid, IconButton, Paper, Button, TextField, Dialog, Modal } from "@mui/material";
+import {
+	Container,
+	Typography,
+	Box,
+	Avatar,
+	Grid,
+	IconButton,
+	Paper,
+	Button,
+	TextField,
+	Dialog,
+	Modal,
+	Chip,
+	Card,
+	CardActionArea,
+} from "@mui/material";
 import React, { useEffect, useState, ChangeEvent } from "react";
 import toast, { Toaster } from "react-hot-toast";
 import { useParams } from "react-router-dom";
@@ -24,17 +42,13 @@ const UserProfilePage: React.FC = () => {
 	const [user, setUser] = useState<UserDataModel | null>(null);
 	const [uploadedPictures, setUploadedPictures] = useState<FileMetadata[]>([]);
 	const [newProfilePicture, setNewProfilePicture] = useState<File | null>(null);
-	const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+	const [newPhotoFile, setNewPhotoFile] = useState<File | null>(null);
+	const [currentPhotoIndex, setCurrentPhotoIndex] = useState<number | null>(null);
 	const [openPhotoSelectionModal, setOpenPhotoSelectionModal] = useState(false);
+	const [openNewPhotoModal, setOpenNewPhotoModal] = useState(false);
 	const [editModalOpen, setEditModalOpen] = useState(false);
 	const [selectedUploadedPicture, setSelectedUploadedPicture] = useState<string | null>(null);
-
-	const [updatedUserData, setUpdatedUserData] = useState({
-		firstName: "",
-		lastName: "",
-		email: "",
-		profilePictureUrl: "",
-	});
+	const [updatedUserData, setUpdatedUserData] = useState<UserDataModel | null>(null);
 
 	useEffect(() => {
 		const fetchUserData = async () => {
@@ -49,6 +63,8 @@ const UserProfilePage: React.FC = () => {
 							lastName: userResponse.data.lastName || "",
 							email: userResponse.data.email || "",
 							profilePictureUrl: userResponse.data.profilePictureUrl || "",
+							phoneNumber: userResponse.data.phoneNumber || "",
+							aboutMe: userResponse.data.aboutMe || "",
 						});
 					} else {
 						throw new Error(userResponse.message || "Failed to load user data.");
@@ -76,18 +92,19 @@ const UserProfilePage: React.FC = () => {
 	};
 
 	const handleDownloadPhoto = () => {
-		if (photoUrl) {
+		if (currentPhotoIndex !== null && uploadedPictures[currentPhotoIndex]) {
+			const photoUrl = uploadedPictures[currentPhotoIndex].url;
 			const link = document.createElement("a");
 			link.href = photoUrl;
 			link.download = "photo.jpg";
 			document.body.appendChild(link);
 			link.click();
-			document.body.removeChild(link); 
+			document.body.removeChild(link);
 		}
 	};
 
 	const handleProfileUpdate = async () => {
-		const response = await updateProfile(user?.uid as string, updatedUserData);
+		const response = await updateProfile(user?.uid as string, updatedUserData as UserDataModel);
 		if (response.success) {
 			setUser({ ...user, ...updatedUserData });
 			setEditModalOpen(false);
@@ -100,7 +117,7 @@ const UserProfilePage: React.FC = () => {
 	const handleProfilePictureChange = (event: ChangeEvent<HTMLInputElement>) => {
 		if (event.target.files && event.target.files[0]) {
 			setNewProfilePicture(event.target.files[0]);
-			setSelectedUploadedPicture(null); 
+			setSelectedUploadedPicture(null);
 		}
 	};
 
@@ -140,6 +157,23 @@ const UserProfilePage: React.FC = () => {
 		}
 	};
 
+	const handleNewPhotoUpload = async () => {
+		if (newPhotoFile) {
+			const fileName = `${currentUser?.uid}_${new Date().getTime()}`;
+			const fileDir = `users/${currentUser?.uid}_photos`;
+			const fileUploadResponse = await uploadFile(newPhotoFile, fileDir, fileName);
+
+			if (fileUploadResponse.success) {
+				toast.success("Photo uploaded successfully.");
+				setOpenNewPhotoModal(false);
+				setNewPhotoFile(null);
+				reloadUserData();
+			} else {
+				toast.error(fileUploadResponse.message || "Failed to upload photo.");
+			}
+		}
+	};
+
 	const handleSelectUploadedPicture = (url: string) => {
 		setSelectedUploadedPicture(url);
 		setNewProfilePicture(null);
@@ -162,12 +196,12 @@ const UserProfilePage: React.FC = () => {
 		}
 	};
 
-	const handleOpenModal = (url: string) => {
-		setPhotoUrl(url);
+	const handleOpenModal = (index: number) => {
+		setCurrentPhotoIndex(index);
 	};
 
 	const handleCloseModal = () => {
-		setPhotoUrl(null);
+		setCurrentPhotoIndex(null);
 	};
 
 	const handleOpenPhotoSelectionModal = () => {
@@ -180,108 +214,210 @@ const UserProfilePage: React.FC = () => {
 		setSelectedUploadedPicture(null);
 	};
 
+	const handleOpenNewPhotoModal = () => {
+		setOpenNewPhotoModal(true);
+	};
+
+	const handleCloseNewPhotoModal = () => {
+		setOpenNewPhotoModal(false);
+		setNewPhotoFile(null);
+	};
+
+	const handleNextPhoto = () => {
+		if (currentPhotoIndex !== null) {
+			setCurrentPhotoIndex((prevIndex) => {
+				if (prevIndex === null) return 0;
+				return (prevIndex + 1) % uploadedPictures.length;
+			});
+		}
+	};
+
+	const handlePreviousPhoto = () => {
+		if (currentPhotoIndex !== null) {
+			setCurrentPhotoIndex((prevIndex) => {
+				if (prevIndex === null) return uploadedPictures.length - 1;
+				return (prevIndex - 1 + uploadedPictures.length) % uploadedPictures.length;
+			});
+		}
+	};
+
+	const isCurrentUserProfile = currentUser?.uid === user?.uid;
+
 	return (
 		<>
 			<Toaster />
 			<Container maxWidth='md'>
-				<Box display='flex' flexDirection='column' alignItems='center' pt={2}>
-					<Box sx={{ position: "relative" }}>
+				<Box display='flex' flexDirection='column' alignItems='center' pt={4}>
+					<Box
+						sx={{
+							position: "relative",
+							mb: 3,
+							display: "flex",
+							flexDirection: "column",
+							alignItems: "center",
+						}}
+					>
 						<Avatar
 							alt={`${user?.firstName} ${user?.lastName}`}
 							src={user?.profilePictureUrl}
-							sx={{ width: 150, height: 150, borderRadius: "8px", cursor: "pointer" }}
-							onClick={handleOpenPhotoSelectionModal}
 							variant='square'
+							sx={{
+								width: 200,
+								height: 200,
+								cursor: isCurrentUserProfile ? "pointer" : "default",
+								boxShadow: 4,
+								transition: "transform 0.3s ease, box-shadow 0.3s ease",
+								"&:hover": isCurrentUserProfile
+									? {
+											transform: "scale(1.05)",
+											boxShadow: 6,
+										}
+									: undefined,
+							}}
+							onClick={isCurrentUserProfile ? handleOpenPhotoSelectionModal : undefined}
 						/>
 						<Typography
+							variant='h5'
 							sx={{
 								position: "absolute",
-								bottom: 0,
-								left: 0,
+								bottom: -25,
+								left: "50%",
+								transform: "translateX(-50%)",
 								backgroundColor: "rgba(0, 0, 0, 0.6)",
 								color: "#fff",
-								padding: "4px 8px",
-								borderRadius: "0 0 8px 8px",
+								padding: "8px 16px",
+								borderRadius: "16px",
+								boxShadow: 2,
+								fontWeight: "bold",
+								width: "60%",
+								textAlign: "center",
+								fontSize: "1.2rem",
 							}}
 						>
 							{user?.username}, {calculateAge(user?.dateOfBirth)}
 						</Typography>
 					</Box>
 
-					<Paper elevation={2} sx={{ mt: 2, p: 2, width: "100%" }}>
-						<Box display='flex' justifyContent='space-between' alignItems='center'>
-							<Typography variant='h6' gutterBottom>
+					<Paper elevation={3} sx={{ p: 3, width: "100%", borderRadius: 4, boxShadow: 3 }}>
+						<Box display='flex' justifyContent='space-between' alignItems='center' mb={2}>
+							<Typography variant='h6' fontWeight='bold'>
 								User Info
 							</Typography>
-							{currentUser?.uid === user?.uid && (
-								<IconButton onClick={() => setEditModalOpen(true)}>
+							{isCurrentUserProfile && (
+								<IconButton onClick={() => setEditModalOpen(true)} size='large'>
 									<EditIcon />
 								</IconButton>
 							)}
 						</Box>
-						<Typography variant='body2' color='textSecondary'>
-							<strong>Name:</strong> {user?.firstName} {user?.lastName}
-						</Typography>
-						<Typography variant='body2' color='textSecondary'>
-							<strong>Email:</strong> {user?.email}
-						</Typography>
-						<Typography variant='body2' color='textSecondary'>
-							<strong>Date of Birth:</strong> {user?.dateOfBirth?.toLocaleDateString() || "N/A"}
-						</Typography>
+						<Box>
+							<Typography variant='body1' color='textSecondary'>
+								<strong>Name:</strong> {user?.firstName} {user?.lastName}
+							</Typography>
+							<Typography variant='body1' color='textSecondary'>
+								<strong>Email:</strong> {user?.email}
+							</Typography>
+							<Typography variant='body1' color='textSecondary'>
+								<strong>Phone:</strong> {user?.phoneNumber || "N/A"}
+							</Typography>
+							<Typography variant='body1' color='textSecondary'>
+								<strong>Gender:</strong> {user?.gender}
+							</Typography>
+							<Typography variant='body1' color='textSecondary'>
+								<strong>Date of Birth:</strong> {user?.dateOfBirth?.toLocaleDateString() || "N/A"}
+							</Typography>
+						</Box>
 					</Paper>
 
-					<Paper elevation={2} sx={{ mt: 4, p: 2, width: "100%" }}>
+					<Paper elevation={3} sx={{ mt: 3, p: 3, width: "100%", borderRadius: 4, boxShadow: 3 }}>
 						<Box display='flex' justifyContent='space-between' alignItems='center'>
-							<Typography variant='h6'>About Me</Typography>
-							{currentUser?.uid === user?.uid && (
-								<IconButton onClick={() => setEditModalOpen(true)}>
+							<Typography variant='h6' fontWeight='bold'>
+								About Me
+							</Typography>
+							{isCurrentUserProfile && (
+								<IconButton onClick={() => setEditModalOpen(true)} size='large'>
 									<EditIcon />
 								</IconButton>
 							)}
 						</Box>
-						<Typography variant='body1' mt={1}>
+						<Typography variant='body1' mt={2}>
 							{user?.aboutMe || "No information provided."}
 						</Typography>
 					</Paper>
 
-					<Paper elevation={2} sx={{ mt: 4, p: 2, width: "100%" }}>
-						<Typography variant='h6'>Photos</Typography>
+					<Paper elevation={3} sx={{ mt: 3, p: 3, width: "100%", borderRadius: 4, boxShadow: 3 }}>
+						<Typography variant='h6' fontWeight='bold'>
+							Photos
+						</Typography>
 						<Grid container spacing={2} mt={1}>
-							{uploadedPictures.map((picture) => (
+							{uploadedPictures.map((picture, index) => (
 								<Grid item key={picture.name || picture.url}>
-									<Avatar
-										alt={user?.username}
-										src={picture.url}
-										sx={{ width: 100, height: 100, borderRadius: "8px", cursor: "pointer" }}
-										onClick={() => handleOpenModal(picture.url)}
-										variant='square'
-									/>
+									<Card sx={{ width: 120, height: 120, borderRadius: 2, boxShadow: 2 }}>
+										<CardActionArea onClick={() => handleOpenModal(index)}>
+											<Box sx={{ height: "100%", overflow: "hidden", borderRadius: 2 }}>
+												<img
+													src={picture.url}
+													alt={user?.username}
+													style={{
+														width: "100%",
+														height: "100%",
+														objectFit: "cover",
+													}}
+												/>
+											</Box>
+										</CardActionArea>
+									</Card>
 								</Grid>
 							))}
-							{/* Add button to upload new photos */}
-							{currentUser?.uid === user?.uid && (
+							{isCurrentUserProfile && (
 								<Grid item>
-									<Avatar
-										sx={{
-											width: 100,
-											height: 100,
-											backgroundColor: "#e0e0e0",
-											borderRadius: "8px",
-										}}
-										variant='square'
-										onClick={handleOpenPhotoSelectionModal}
+									<Card
+										sx={{ width: 120, height: 120, borderRadius: 2, boxShadow: 2 }}
+										onClick={handleOpenNewPhotoModal}
 									>
-										+
-									</Avatar>
+										<CardActionArea sx={{ height: "100%" }}>
+											<Box
+												sx={{
+													display: "flex",
+													flexDirection: "column",
+													justifyContent: "center",
+													alignItems: "center",
+													height: "100%",
+													color: "gray",
+												}}
+											>
+												<AddPhotoAlternateIcon sx={{ fontSize: 50 }} />
+												<Typography>Add Photo</Typography>
+											</Box>
+										</CardActionArea>
+									</Card>
 								</Grid>
 							)}
 						</Grid>
 					</Paper>
+
+					{user?.friends && (
+						<Paper elevation={3} sx={{ mt: 3, p: 3, width: "100%", borderRadius: 4, boxShadow: 3 }}>
+							<Typography variant='h6' fontWeight='bold'>
+								Friends
+							</Typography>
+							<Box mt={2}>
+								{user.friends.length > 0 ? (
+									user.friends.map((friend) => (
+										<Chip key={friend} label={friend} sx={{ mr: 1, mb: 1, fontSize: "0.875rem" }} />
+									))
+								) : (
+									<Typography variant='body2' color='textSecondary'>
+										No friends added.
+									</Typography>
+								)}
+							</Box>
+						</Paper>
+					)}
 				</Box>
 
 				{/* Modal for viewing photo */}
 				<Modal
-					open={Boolean(photoUrl)}
+					open={currentPhotoIndex !== null}
 					onClose={handleCloseModal}
 					sx={{
 						display: "flex",
@@ -299,9 +435,9 @@ const UserProfilePage: React.FC = () => {
 							display: "flex",
 							justifyContent: "center",
 							alignItems: "center",
-							bgcolor: "rgba(0, 0, 0, 0.9)", 
+							bgcolor: "rgba(0, 0, 0, 0.9)",
 						}}
-						onClick={handleCloseModal} 
+						onClick={handleCloseModal}
 					>
 						<IconButton
 							onClick={handleCloseModal}
@@ -327,12 +463,46 @@ const UserProfilePage: React.FC = () => {
 						>
 							<DownloadIcon fontSize='inherit' />
 						</IconButton>
-						<img
-							src={photoUrl as string}
-							alt='User'
-							style={{ maxWidth: "90%", maxHeight: "90%", borderRadius: "8px", cursor: "auto" }}
-							onClick={(e) => e.stopPropagation()}
-						/>
+						{currentPhotoIndex !== null && uploadedPictures.length > 1 && (
+							<>
+								<IconButton
+									onClick={(e) => {
+										e.stopPropagation();
+										handlePreviousPhoto();
+									}}
+									sx={{
+										position: "absolute",
+										left: "16px",
+										color: "white",
+										fontSize: "32px",
+									}}
+								>
+									<ArrowBackIcon fontSize='inherit' />
+								</IconButton>
+								<IconButton
+									onClick={(e) => {
+										e.stopPropagation();
+										handleNextPhoto();
+									}}
+									sx={{
+										position: "absolute",
+										right: "16px",
+										color: "white",
+										fontSize: "32px",
+									}}
+								>
+									<ArrowForwardIcon fontSize='inherit' />
+								</IconButton>
+							</>
+						)}
+						{currentPhotoIndex !== null && (
+							<img
+								src={uploadedPictures[currentPhotoIndex].url}
+								alt='User'
+								style={{ maxWidth: "90%", maxHeight: "90%", borderRadius: "8px", cursor: "auto" }}
+								onClick={(e) => e.stopPropagation()}
+							/>
+						)}
 					</Box>
 				</Modal>
 
@@ -345,7 +515,7 @@ const UserProfilePage: React.FC = () => {
 						<TextField
 							label='First Name'
 							name='firstName'
-							value={updatedUserData.firstName}
+							value={updatedUserData?.firstName}
 							onChange={handleInputChange}
 							fullWidth
 							margin='normal'
@@ -353,7 +523,7 @@ const UserProfilePage: React.FC = () => {
 						<TextField
 							label='Last Name'
 							name='lastName'
-							value={updatedUserData.lastName}
+							value={updatedUserData?.lastName}
 							onChange={handleInputChange}
 							fullWidth
 							margin='normal'
@@ -361,15 +531,23 @@ const UserProfilePage: React.FC = () => {
 						<TextField
 							label='Email'
 							name='email'
-							value={updatedUserData.email}
+							value={updatedUserData?.email}
 							onChange={handleInputChange}
 							fullWidth
 							margin='normal'
 						/>
 						<TextField
-							label='Profile Picture URL'
-							name='profilePictureUrl'
-							value={updatedUserData.profilePictureUrl}
+							label='Phone Number'
+							name='phoneNumber'
+							value={updatedUserData?.phoneNumber}
+							onChange={handleInputChange}
+							fullWidth
+							margin='normal'
+						/>
+						<TextField
+							label='About Me'
+							name='aboutMe'
+							value={updatedUserData?.aboutMe}
 							onChange={handleInputChange}
 							fullWidth
 							margin='normal'
@@ -548,6 +726,91 @@ const UserProfilePage: React.FC = () => {
 								</Grid>
 							))}
 						</Grid>
+					</Box>
+				</Dialog>
+
+				{/* Modal for uploading new photo */}
+				<Dialog open={openNewPhotoModal} onClose={handleCloseNewPhotoModal} fullWidth maxWidth='sm'>
+					<Box sx={{ p: 4, textAlign: "center" }}>
+						<Box display='flex' justifyContent='space-between' alignItems='center' mb={2}>
+							<Typography variant='h6' sx={{ fontWeight: "bold", fontSize: "1.2rem" }}>
+								Upload New Photo
+							</Typography>
+							<IconButton onClick={handleCloseNewPhotoModal}>
+								<CloseIcon />
+							</IconButton>
+						</Box>
+
+						<input
+							accept='image/*'
+							style={{ display: "none" }}
+							id='upload-new-photo'
+							type='file'
+							onChange={(e) => setNewPhotoFile(e.target.files ? e.target.files[0] : null)}
+						/>
+						<label htmlFor='upload-new-photo'>
+							<Button
+								variant='contained'
+								component='span'
+								startIcon={<CloudUploadIcon />}
+								sx={{
+									background:
+										"linear-gradient(45deg, rgba(255,64,129,1) 0%, rgba(255,105,135,1) 100%)",
+									color: "white",
+									width: "100%",
+									mb: 3,
+									"&:hover": {
+										background:
+											"linear-gradient(45deg, rgba(255,64,129,0.8) 0%, rgba(255,105,135,0.8) 100%)",
+									},
+								}}
+							>
+								Select Photo
+							</Button>
+						</label>
+
+						{newPhotoFile && (
+							<Box
+								sx={{
+									display: "flex",
+									justifyContent: "center",
+									mb: 2,
+									overflow: "hidden",
+								}}
+							>
+								<img
+									src={URL.createObjectURL(newPhotoFile)}
+									alt='New'
+									style={{
+										width: "120px",
+										height: "120px",
+										objectFit: "cover",
+									}}
+								/>
+							</Box>
+						)}
+
+						{newPhotoFile && (
+							<Button
+								variant='contained'
+								color='primary'
+								startIcon={<SaveIcon />}
+								onClick={handleNewPhotoUpload}
+								sx={{
+									background:
+										"linear-gradient(45deg, rgba(255,64,129,1) 0%, rgba(255,105,135,1) 100%)",
+									color: "white",
+									width: "100%",
+									mb: 2,
+									"&:hover": {
+										background:
+											"linear-gradient(45deg, rgba(255,64,129,0.8) 0%, rgba(255,105,135,0.8) 100%)",
+									},
+								}}
+							>
+								Upload Photo
+							</Button>
+						)}
 					</Box>
 				</Dialog>
 			</Container>

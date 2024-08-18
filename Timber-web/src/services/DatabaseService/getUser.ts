@@ -1,5 +1,6 @@
 import { doc, DocumentData, DocumentSnapshot, getDoc } from "firebase/firestore";
 
+import { Gender } from "../../constants/Enums/Gender";
 import { ServiceResponse } from "../../constants/Models/ServiceResponse";
 import { UserDataModel } from "../../constants/Models/UserDataModel";
 import { FirebaseFireStore } from "../../firebase";
@@ -17,7 +18,7 @@ const getUser = async (userId: string): Promise<ServiceResponse<UserDataModel>> 
 			uid: userDoc.id,
 			profilePictureUrl: data?.profilePictureUrl || "",
 			username: data?.username || "",
-			gender: data?.gender,
+			gender: data?.gender as Gender,
 			email: data?.email || "",
 			firstName: data?.firstName || "",
 			lastName: data?.lastName || "",
@@ -26,6 +27,7 @@ const getUser = async (userId: string): Promise<ServiceResponse<UserDataModel>> 
 			friends: data?.friends || [],
 			dateOfBirth: data?.dateOfBirth ? new Date(data.dateOfBirth.seconds * 1000) : undefined,
 		};
+
 
 		return { success: true, data: user };
 	} catch (err) {

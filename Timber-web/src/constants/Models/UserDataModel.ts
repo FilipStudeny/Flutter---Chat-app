@@ -4,7 +4,7 @@ export interface UserDataModel {
 	uid?: string;
 	profilePictureUrl?: string;
 	username?: string;
-	gender?: Gender;
+	gender?: Gender | null;
 	email?: string;
 	dateOfBirth?: Date;
 	friends?: string[];

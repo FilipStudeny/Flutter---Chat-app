@@ -1,4 +1,4 @@
-import { doc, updateDoc } from "firebase/firestore";
+import { doc, Timestamp, updateDoc } from "firebase/firestore";
 
 import { Gender } from "../../constants/Enums/Gender";
 import { ServiceResponse } from "../../constants/Models/ServiceResponse";
@@ -9,18 +9,22 @@ const updateProfile = async (id: string, user: UserDataModel): Promise<ServiceRe
 	try {
 		const userDocRef = doc(FirebaseFireStore, "users", id);
 
-		await updateDoc(userDocRef, {
-			username: user.username,
-			firstName: user.firstName,
-			lastName: user.lastName,
-			email: user.email,
-			profilePictureUrl: user.profilePictureUrl,
-			gender: genderToString(user.gender as Gender),
-			phoneNumber: user.phoneNumber,
-			friends: user.friends,
-			aboutMe: user.aboutMe,
-			dateOfBirth: user.dateOfBirth,
-		});
+		const updatedData = Object.fromEntries(
+			Object.entries({
+				username: user.username,
+				firstName: user.firstName,
+				lastName: user.lastName,
+				email: user.email,
+				profilePictureUrl: user.profilePictureUrl,
+				gender: genderToString(user.gender as Gender),
+				phoneNumber: user.phoneNumber,
+				friends: user.friends,
+				aboutMe: user.aboutMe,
+				dateOfBirth: user.dateOfBirth ? Timestamp.fromDate(new Date(user.dateOfBirth)) : null,
+			}).filter(([, v]) => v !== undefined),
+		);
+
+		await updateDoc(userDocRef, updatedData);
 
 		return { data: true, success: true };
 	} catch (err) {

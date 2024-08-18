@@ -23,6 +23,10 @@ import {
 	Card,
 	CardActionArea,
 } from "@mui/material";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
+import { DatePicker } from "@mui/x-date-pickers/DatePicker";
+import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
+import dayjs from "dayjs";
 import React, { useEffect, useState, ChangeEvent } from "react";
 import toast, { Toaster } from "react-hot-toast";
 import { useParams } from "react-router-dom";
@@ -104,13 +108,18 @@ const UserProfilePage: React.FC = () => {
 	};
 
 	const handleProfileUpdate = async () => {
-		const response = await updateProfile(user?.uid as string, updatedUserData as UserDataModel);
-		if (response.success) {
-			setUser({ ...user, ...updatedUserData });
-			setEditModalOpen(false);
-			toast.success("Profile updated successfully.");
+		if (updatedUserData) {
+			updatedUserData.gender = user?.gender;
+			const response = await updateProfile(user?.uid as string, updatedUserData as UserDataModel);
+			if (response.success) {
+				setUser({ ...user, ...updatedUserData });
+				setEditModalOpen(false);
+				toast.success("Profile updated successfully.");
+			} else {
+				toast.error(response.message || "Failed to update profile.");
+			}
 		} else {
-			toast.error(response.message || "Failed to update profile.");
+			toast.error("No updated user data available.");
 		}
 	};
 
@@ -513,9 +522,17 @@ const UserProfilePage: React.FC = () => {
 							Edit Profile
 						</Typography>
 						<TextField
+							label='Username'
+							name='username'
+							value={user?.username}
+							onChange={handleInputChange}
+							fullWidth
+							margin='normal'
+						/>
+						<TextField
 							label='First Name'
 							name='firstName'
-							value={updatedUserData?.firstName}
+							value={user?.firstName}
 							onChange={handleInputChange}
 							fullWidth
 							margin='normal'
@@ -523,7 +540,7 @@ const UserProfilePage: React.FC = () => {
 						<TextField
 							label='Last Name'
 							name='lastName'
-							value={updatedUserData?.lastName}
+							value={user?.lastName}
 							onChange={handleInputChange}
 							fullWidth
 							margin='normal'
@@ -531,7 +548,7 @@ const UserProfilePage: React.FC = () => {
 						<TextField
 							label='Email'
 							name='email'
-							value={updatedUserData?.email}
+							value={user?.email}
 							onChange={handleInputChange}
 							fullWidth
 							margin='normal'
@@ -539,15 +556,33 @@ const UserProfilePage: React.FC = () => {
 						<TextField
 							label='Phone Number'
 							name='phoneNumber'
-							value={updatedUserData?.phoneNumber}
+							value={user?.phoneNumber}
 							onChange={handleInputChange}
 							fullWidth
 							margin='normal'
 						/>
+						<LocalizationProvider dateAdapter={AdapterDayjs}>
+							<DatePicker
+								label='Select Date of Birth'
+								value={user?.dateOfBirth ? dayjs(user.dateOfBirth) : null} // Convert Date to Dayjs
+								onChange={(date) => {
+									if (updatedUserData && date) {
+										updatedUserData.dateOfBirth = date.toDate(); // Convert Dayjs back to Date
+										setUpdatedUserData({ ...updatedUserData });
+									}
+								}}
+								slotProps={{
+									textField: {
+										fullWidth: true,
+										margin: "normal",
+									},
+								}}
+							/>
+						</LocalizationProvider>
 						<TextField
 							label='About Me'
 							name='aboutMe'
-							value={updatedUserData?.aboutMe}
+							value={user?.aboutMe || ""}
 							onChange={handleInputChange}
 							fullWidth
 							margin='normal'

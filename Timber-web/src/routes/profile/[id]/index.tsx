@@ -19,7 +19,6 @@ import {
 	TextField,
 	Dialog,
 	Modal,
-	Chip,
 	Card,
 	CardActionArea,
 } from "@mui/material";
@@ -31,8 +30,10 @@ import React, { useEffect, useState, ChangeEvent } from "react";
 import toast, { Toaster } from "react-hot-toast";
 import { useParams } from "react-router-dom";
 
+import FriendsList from "../../../components/Lists/FriendList";
 import { calculateAge, UserDataModel } from "../../../constants/Models/UserDataModel";
 import { useAuth } from "../../../context/AuthenticationContext";
+import getAllFriends from "../../../services/DatabaseService/getAllFriends";
 import getUser from "../../../services/DatabaseService/getUser";
 import updateProfile from "../../../services/DatabaseService/updateProfile";
 import updateProfilePicture from "../../../services/DatabaseService/updateProfilePicture";
@@ -53,6 +54,7 @@ const UserProfilePage: React.FC = () => {
 	const [editModalOpen, setEditModalOpen] = useState(false);
 	const [selectedUploadedPicture, setSelectedUploadedPicture] = useState<string | null>(null);
 	const [updatedUserData, setUpdatedUserData] = useState<UserDataModel | null>(null);
+	const [friendsList, setFriendsList] = useState<UserDataModel[] | null>(null);
 
 	useEffect(() => {
 		const fetchUserData = async () => {
@@ -60,6 +62,7 @@ const UserProfilePage: React.FC = () => {
 				try {
 					const userResponse = await getUser(id);
 					const photosResponse = await getUserPhotos(id);
+					const friendsResponse = await getAllFriends({ userId: id });
 					if (userResponse.success && userResponse.data) {
 						setUser(userResponse.data);
 						setUpdatedUserData({
@@ -74,6 +77,11 @@ const UserProfilePage: React.FC = () => {
 						throw new Error(userResponse.message || "Failed to load user data.");
 					}
 
+					if (friendsResponse.success && friendsResponse.data) {
+						setFriendsList(friendsResponse.data);
+					} else {
+						throw new Error(friendsResponse.message || "Failed to load friends.");
+					}
 					if (photosResponse.success && photosResponse.data) {
 						setUploadedPictures(photosResponse.data);
 					} else {
@@ -361,7 +369,15 @@ const UserProfilePage: React.FC = () => {
 							{uploadedPictures.map((picture, index) => (
 								<Grid item key={picture.name || picture.url}>
 									<Card sx={{ width: 120, height: 120, borderRadius: 2, boxShadow: 2 }}>
-										<CardActionArea onClick={() => handleOpenModal(index)}>
+										<CardActionArea
+											onClick={() => handleOpenModal(index)}
+											sx={{
+												height: "100%",
+												display: "flex",
+												justifyContent: "center",
+												alignItems: "center",
+											}}
+										>
 											<Box sx={{ height: "100%", overflow: "hidden", borderRadius: 2 }}>
 												<img
 													src={picture.url}
@@ -383,7 +399,14 @@ const UserProfilePage: React.FC = () => {
 										sx={{ width: 120, height: 120, borderRadius: 2, boxShadow: 2 }}
 										onClick={handleOpenNewPhotoModal}
 									>
-										<CardActionArea sx={{ height: "100%" }}>
+										<CardActionArea
+											sx={{
+												height: "100%",
+												display: "flex",
+												justifyContent: "center",
+												alignItems: "center",
+											}}
+										>
 											<Box
 												sx={{
 													display: "flex",
@@ -404,24 +427,7 @@ const UserProfilePage: React.FC = () => {
 						</Grid>
 					</Paper>
 
-					{user?.friends && (
-						<Paper elevation={3} sx={{ mt: 3, p: 3, width: "100%", borderRadius: 4, boxShadow: 3 }}>
-							<Typography variant='h6' fontWeight='bold'>
-								Friends
-							</Typography>
-							<Box mt={2}>
-								{user.friends.length > 0 ? (
-									user.friends.map((friend) => (
-										<Chip key={friend} label={friend} sx={{ mr: 1, mb: 1, fontSize: "0.875rem" }} />
-									))
-								) : (
-									<Typography variant='body2' color='textSecondary'>
-										No friends added.
-									</Typography>
-								)}
-							</Box>
-						</Paper>
-					)}
+					<FriendsList friendsList={friendsList as UserDataModel[]} />
 				</Box>
 
 				{/* Modal for viewing photo */}

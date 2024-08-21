@@ -14,7 +14,7 @@ import {
 } from "firebase/firestore";
 
 import { ServiceResponse } from "../../constants/Models/ServiceResponse";
-import { UserDataModel } from "../../constants/Models/UserDataModel";
+import { calculateAge, UserDataModel } from "../../constants/Models/UserDataModel";
 import { FirebaseFireStore } from "../../firebase";
 
 const getAllFriends = async ({
@@ -59,11 +59,13 @@ const getAllFriends = async ({
 					uid: doc.id,
 					profilePictureUrl: data.profilePictureUrl,
 					username: data.username,
-					age: data.age,
+					age: calculateAge(data.dateOfBirth?.toDate()),
 					gender: data.gender,
 					online: false,
 					email: data.email,
-					userGender: data.userGender,
+					userGender: data.gender,
+					firstName: data.firstName,
+					lastName: data.lastName,
 				} as UserDataModel;
 			});
 

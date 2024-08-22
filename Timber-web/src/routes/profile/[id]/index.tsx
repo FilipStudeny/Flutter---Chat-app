@@ -1,9 +1,6 @@
-import AddPhotoAlternateIcon from "@mui/icons-material/AddPhotoAlternate";
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import CloseIcon from "@mui/icons-material/Close";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
-import DownloadIcon from "@mui/icons-material/Download";
+import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
 import RemoveCircleOutlineIcon from "@mui/icons-material/RemoveCircleOutline";
 import SaveIcon from "@mui/icons-material/Save";
@@ -18,9 +15,7 @@ import {
 	Button,
 	TextField,
 	Dialog,
-	Modal,
-	Card,
-	CardActionArea,
+	Checkbox,
 } from "@mui/material";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
@@ -30,6 +25,7 @@ import React, { useEffect, useState, ChangeEvent } from "react";
 import toast, { Toaster } from "react-hot-toast";
 import { useParams } from "react-router-dom";
 
+import PhotosSection from "./components/PhotoSection";
 import FriendsList from "../../../components/Lists/FriendList";
 import { calculateAge, UserDataModel } from "../../../constants/Models/UserDataModel";
 import { useAuth } from "../../../context/AuthenticationContext";
@@ -46,11 +42,12 @@ const UserProfilePage: React.FC = () => {
 
 	const [user, setUser] = useState<UserDataModel | null>(null);
 	const [uploadedPictures, setUploadedPictures] = useState<FileMetadata[]>([]);
+	const [selectedPicturesForDeletion, setSelectedPicturesForDeletion] = useState<string[]>([]);
 	const [newProfilePicture, setNewProfilePicture] = useState<File | null>(null);
 	const [newPhotoFile, setNewPhotoFile] = useState<File | null>(null);
-	const [currentPhotoIndex, setCurrentPhotoIndex] = useState<number | null>(null);
 	const [openPhotoSelectionModal, setOpenPhotoSelectionModal] = useState(false);
 	const [openNewPhotoModal, setOpenNewPhotoModal] = useState(false);
+	const [openManagePhotosModal, setOpenManagePhotosModal] = useState(false);
 	const [editModalOpen, setEditModalOpen] = useState(false);
 	const [selectedUploadedPicture, setSelectedUploadedPicture] = useState<string | null>(null);
 	const [updatedUserData, setUpdatedUserData] = useState<UserDataModel | null>(null);
@@ -101,18 +98,6 @@ const UserProfilePage: React.FC = () => {
 			...prevState,
 			[name]: value,
 		}));
-	};
-
-	const handleDownloadPhoto = () => {
-		if (currentPhotoIndex !== null && uploadedPictures[currentPhotoIndex]) {
-			const photoUrl = uploadedPictures[currentPhotoIndex].url;
-			const link = document.createElement("a");
-			link.href = photoUrl;
-			link.download = "photo.jpg";
-			document.body.appendChild(link);
-			link.click();
-			document.body.removeChild(link);
-		}
 	};
 
 	const handleProfileUpdate = async () => {
@@ -213,14 +198,6 @@ const UserProfilePage: React.FC = () => {
 		}
 	};
 
-	const handleOpenModal = (index: number) => {
-		setCurrentPhotoIndex(index);
-	};
-
-	const handleCloseModal = () => {
-		setCurrentPhotoIndex(null);
-	};
-
 	const handleOpenPhotoSelectionModal = () => {
 		setOpenPhotoSelectionModal(true);
 	};
@@ -231,32 +208,25 @@ const UserProfilePage: React.FC = () => {
 		setSelectedUploadedPicture(null);
 	};
 
-	const handleOpenNewPhotoModal = () => {
-		setOpenNewPhotoModal(true);
-	};
-
 	const handleCloseNewPhotoModal = () => {
 		setOpenNewPhotoModal(false);
 		setNewPhotoFile(null);
 	};
 
-	const handleNextPhoto = () => {
-		if (currentPhotoIndex !== null) {
-			setCurrentPhotoIndex((prevIndex) => {
-				if (prevIndex === null) return 0;
-				return (prevIndex + 1) % uploadedPictures.length;
-			});
-		}
+	const handleCloseManagePhotosModal = () => {
+		setOpenManagePhotosModal(false);
+		setSelectedPicturesForDeletion([]);
 	};
 
-	const handlePreviousPhoto = () => {
-		if (currentPhotoIndex !== null) {
-			setCurrentPhotoIndex((prevIndex) => {
-				if (prevIndex === null) return uploadedPictures.length - 1;
-				return (prevIndex - 1 + uploadedPictures.length) % uploadedPictures.length;
-			});
-		}
+	const handleSelectPhotoForDeletion = (url: string) => {
+		setSelectedPicturesForDeletion((prevSelected) =>
+			prevSelected.includes(url)
+				? prevSelected.filter((selectedUrl) => selectedUrl !== url)
+				: [...prevSelected, url],
+		);
 	};
+
+	const handleDeleteSelectedPhotos = async () => {};
 
 	const isCurrentUserProfile = currentUser?.uid === user?.uid;
 
@@ -361,165 +331,17 @@ const UserProfilePage: React.FC = () => {
 						</Typography>
 					</Paper>
 
+					{/* Photos Section */}
 					<Paper elevation={3} sx={{ mt: 3, p: 3, width: "100%", borderRadius: 4, boxShadow: 3 }}>
-						<Typography variant='h6' fontWeight='bold'>
-							Photos
-						</Typography>
-						<Grid container spacing={2} mt={1}>
-							{uploadedPictures.map((picture, index) => (
-								<Grid item key={picture.name || picture.url}>
-									<Card sx={{ width: 120, height: 120, borderRadius: 2, boxShadow: 2 }}>
-										<CardActionArea
-											onClick={() => handleOpenModal(index)}
-											sx={{
-												height: "100%",
-												display: "flex",
-												justifyContent: "center",
-												alignItems: "center",
-											}}
-										>
-											<Box sx={{ height: "100%", overflow: "hidden", borderRadius: 2 }}>
-												<img
-													src={picture.url}
-													alt={user?.username}
-													style={{
-														width: "100%",
-														height: "100%",
-														objectFit: "cover",
-													}}
-												/>
-											</Box>
-										</CardActionArea>
-									</Card>
-								</Grid>
-							))}
-							{isCurrentUserProfile && (
-								<Grid item>
-									<Card
-										sx={{ width: 120, height: 120, borderRadius: 2, boxShadow: 2 }}
-										onClick={handleOpenNewPhotoModal}
-									>
-										<CardActionArea
-											sx={{
-												height: "100%",
-												display: "flex",
-												justifyContent: "center",
-												alignItems: "center",
-											}}
-										>
-											<Box
-												sx={{
-													display: "flex",
-													flexDirection: "column",
-													justifyContent: "center",
-													alignItems: "center",
-													height: "100%",
-													color: "gray",
-												}}
-											>
-												<AddPhotoAlternateIcon sx={{ fontSize: 50 }} />
-												<Typography>Add Photo</Typography>
-											</Box>
-										</CardActionArea>
-									</Card>
-								</Grid>
-							)}
-						</Grid>
+						<PhotosSection
+							isCurrentUserProfile={isCurrentUserProfile}
+							uploadedPictures={uploadedPictures}
+							reloadUserData={reloadUserData}
+						/>
 					</Paper>
 
 					<FriendsList friendsList={friendsList as UserDataModel[]} />
 				</Box>
-
-				{/* Modal for viewing photo */}
-				<Modal
-					open={currentPhotoIndex !== null}
-					onClose={handleCloseModal}
-					sx={{
-						display: "flex",
-						justifyContent: "center",
-						alignItems: "center",
-					}}
-				>
-					<Box
-						sx={{
-							position: "fixed",
-							top: 0,
-							left: 0,
-							width: "100vw",
-							height: "100vh",
-							display: "flex",
-							justifyContent: "center",
-							alignItems: "center",
-							bgcolor: "rgba(0, 0, 0, 0.9)",
-						}}
-						onClick={handleCloseModal}
-					>
-						<IconButton
-							onClick={handleCloseModal}
-							sx={{
-								position: "fixed",
-								top: "16px",
-								right: "16px",
-								color: "white",
-								fontSize: "32px",
-							}}
-						>
-							<CloseIcon fontSize='inherit' />
-						</IconButton>
-						<IconButton
-							onClick={handleDownloadPhoto}
-							sx={{
-								position: "fixed",
-								top: "16px",
-								left: "16px",
-								color: "white",
-								fontSize: "32px",
-							}}
-						>
-							<DownloadIcon fontSize='inherit' />
-						</IconButton>
-						{currentPhotoIndex !== null && uploadedPictures.length > 1 && (
-							<>
-								<IconButton
-									onClick={(e) => {
-										e.stopPropagation();
-										handlePreviousPhoto();
-									}}
-									sx={{
-										position: "absolute",
-										left: "16px",
-										color: "white",
-										fontSize: "32px",
-									}}
-								>
-									<ArrowBackIcon fontSize='inherit' />
-								</IconButton>
-								<IconButton
-									onClick={(e) => {
-										e.stopPropagation();
-										handleNextPhoto();
-									}}
-									sx={{
-										position: "absolute",
-										right: "16px",
-										color: "white",
-										fontSize: "32px",
-									}}
-								>
-									<ArrowForwardIcon fontSize='inherit' />
-								</IconButton>
-							</>
-						)}
-						{currentPhotoIndex !== null && (
-							<img
-								src={uploadedPictures[currentPhotoIndex].url}
-								alt='User'
-								style={{ maxWidth: "90%", maxHeight: "90%", borderRadius: "8px", cursor: "auto" }}
-								onClick={(e) => e.stopPropagation()}
-							/>
-						)}
-					</Box>
-				</Modal>
 
 				{/* Modal for editing profile */}
 				<Dialog open={editModalOpen} onClose={() => setEditModalOpen(false)} fullWidth maxWidth='sm'>
@@ -852,6 +674,88 @@ const UserProfilePage: React.FC = () => {
 								Upload Photo
 							</Button>
 						)}
+					</Box>
+				</Dialog>
+
+				{/* Modal for managing photos */}
+				<Dialog open={openManagePhotosModal} onClose={handleCloseManagePhotosModal} fullWidth maxWidth='sm'>
+					<Box sx={{ p: 4, textAlign: "center" }}>
+						<Box display='flex' justifyContent='space-between' alignItems='center' mb={2}>
+							<Typography variant='h6' sx={{ fontWeight: "bold", fontSize: "1.2rem" }}>
+								Manage Photos
+							</Typography>
+							<IconButton onClick={handleCloseManagePhotosModal}>
+								<CloseIcon />
+							</IconButton>
+						</Box>
+
+						<Grid container spacing={2} justifyContent='center'>
+							{uploadedPictures.map((picture) => (
+								<Grid item key={picture.name || picture.url}>
+									<Box
+										sx={{
+											width: 120,
+											height: 120,
+											position: "relative",
+											overflow: "hidden",
+											boxShadow: "0px 2px 8px rgba(0, 0, 0, 0.1)",
+											cursor: "pointer",
+											border: selectedPicturesForDeletion.includes(picture.url)
+												? "2px solid #f44336"
+												: "none",
+										}}
+										onClick={() => handleSelectPhotoForDeletion(picture.url)}
+									>
+										<img
+											src={picture.url}
+											alt='Manage'
+											style={{
+												width: "100%",
+												height: "100%",
+												objectFit: "cover",
+												filter: selectedPicturesForDeletion.includes(picture.url)
+													? "brightness(70%)"
+													: "none",
+											}}
+										/>
+										{selectedPicturesForDeletion.includes(picture.url) && (
+											<Checkbox
+												checked
+												sx={{
+													position: "absolute",
+													top: 0,
+													right: 0,
+													color: "#f44336",
+													bgcolor: "white",
+												}}
+											/>
+										)}
+									</Box>
+								</Grid>
+							))}
+						</Grid>
+
+						<Box mt={3} display='flex' justifyContent='space-between'>
+							<Button variant='outlined' color='secondary' onClick={handleCloseManagePhotosModal}>
+								Cancel
+							</Button>
+							<Button
+								variant='contained'
+								color='primary'
+								startIcon={<DeleteIcon />}
+								onClick={handleDeleteSelectedPhotos}
+								disabled={selectedPicturesForDeletion.length === 0}
+								sx={{
+									bgcolor: "#f44336",
+									color: "white",
+									"&:hover": {
+										bgcolor: "#d32f2f",
+									},
+								}}
+							>
+								Delete Selected
+							</Button>
+						</Box>
 					</Box>
 				</Dialog>
 			</Container>

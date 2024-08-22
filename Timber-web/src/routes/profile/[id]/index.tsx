@@ -125,9 +125,13 @@ const UserProfilePage: React.FC = () => {
 
 	const reloadUserData = async () => {
 		if (id) {
-			const userResponse = await getUser(id);
-			if (userResponse.success && userResponse.data) {
-				setUser(userResponse.data);
+			try {
+				const photosResponse = await getUserPhotos(id);
+				if (photosResponse.success && photosResponse.data) {
+					setUploadedPictures(photosResponse.data);
+				}
+			} catch (error) {
+				toast.error("Failed to reload user data.");
 			}
 		}
 	};
@@ -416,10 +420,46 @@ const UserProfilePage: React.FC = () => {
 							margin='normal'
 						/>
 						<Box display='flex' justifyContent='space-between' mt={2}>
-							<Button onClick={() => setEditModalOpen(false)} color='secondary'>
+							<Button
+								onClick={() => setEditModalOpen(false)}
+								variant='outlined'
+								sx={{
+									marginBottom: "1.5rem",
+									padding: "10px 20px",
+									fontSize: "1rem",
+									borderColor: "rgba(255,64,129,1)",
+									color: "rgba(255,64,129,1)",
+									transition: "all 0.3s ease",
+									"&:hover": {
+										borderColor: "rgba(255,105,135,1)",
+										color: "rgba(255,105,135,1)",
+										backgroundColor: "rgba(255,64,129,0.1)",
+									},
+								}}
+							>
 								Cancel
 							</Button>
-							<Button onClick={handleProfileUpdate} variant='contained' color='primary'>
+							<Button
+								onClick={handleProfileUpdate}
+								sx={{
+									marginBottom: "1.5rem",
+									padding: "10px 20px",
+									fontSize: "1rem",
+									background:
+										"linear-gradient(45deg, rgba(255,64,129,1) 0%, rgba(255,105,135,1) 100%)",
+									color: "#fff",
+									cursor: "pointer",
+									"&:hover": {
+										backgroundColor: "#FF4081",
+									},
+									"&:disabled": {
+										background: "rgba(255,105,135, 0.5)",
+										color: "rgba(255, 255, 255, 0.7)",
+									},
+								}}
+								variant='contained'
+								color='primary'
+							>
 								Save
 							</Button>
 						</Box>

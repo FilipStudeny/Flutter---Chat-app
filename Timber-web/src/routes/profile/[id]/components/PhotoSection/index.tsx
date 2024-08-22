@@ -65,7 +65,7 @@ const PhotosSection: React.FC<PhotosSectionProps> = ({ isCurrentUserProfile, upl
 				toast.success("Photo uploaded successfully.");
 				setOpenNewPhotoModal(false);
 				setNewPhotoFile(null);
-				reloadUserData();
+				await reloadUserData();
 			} else {
 				toast.error(fileUploadResponse.message || "Failed to upload photo.");
 			}
@@ -106,7 +106,7 @@ const PhotosSection: React.FC<PhotosSectionProps> = ({ isCurrentUserProfile, upl
 
 			setOpenManagePhotosModal(false);
 			setSelectedPicturesForDeletion([]);
-			reloadUserData();
+			await reloadUserData();
 		}
 	};
 
@@ -130,12 +130,25 @@ const PhotosSection: React.FC<PhotosSectionProps> = ({ isCurrentUserProfile, upl
 
 	return (
 		<>
-			<Box display='flex' justifyContent='space-between' alignItems='center'>
-				<Typography variant='h6' fontWeight='bold'>
+			<Box display='flex' justifyContent='space-between' alignItems='center' mb={2}>
+				<Typography variant='h6' fontWeight='bold' color='text.primary'>
 					Photos
 				</Typography>
 				{isCurrentUserProfile && (
-					<Button variant='outlined' color='secondary' onClick={handleOpenManagePhotosModal}>
+					<Button
+						variant='outlined'
+						sx={{
+							borderColor: "rgba(255,64,129,1)",
+							color: "rgba(255,64,129,1)",
+							transition: "all 0.3s ease",
+							"&:hover": {
+								borderColor: "rgba(255,105,135,1)",
+								color: "rgba(255,105,135,1)",
+								backgroundColor: "rgba(255,64,129,0.1)",
+							},
+						}}
+						onClick={handleOpenManagePhotosModal}
+					>
 						Manage Photos
 					</Button>
 				)}
@@ -424,7 +437,20 @@ const PhotosSection: React.FC<PhotosSectionProps> = ({ isCurrentUserProfile, upl
 					</Grid>
 
 					<Box mt={3} display='flex' justifyContent='space-between'>
-						<Button variant='outlined' color='secondary' onClick={handleCloseManagePhotosModal}>
+						<Button
+							variant='outlined'
+							sx={{
+								borderColor: "rgba(255,64,129,1)",
+								color: "rgba(255,64,129,1)",
+								transition: "all 0.3s ease",
+								"&:hover": {
+									borderColor: "rgba(255,105,135,1)",
+									color: "rgba(255,105,135,1)",
+									backgroundColor: "rgba(255,64,129,0.1)",
+								},
+							}}
+							onClick={handleCloseManagePhotosModal}
+						>
 							Cancel
 						</Button>
 						<Button

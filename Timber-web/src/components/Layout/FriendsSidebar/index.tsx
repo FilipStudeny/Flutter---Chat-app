@@ -8,7 +8,6 @@ import {
 	StyledListItem,
 	StyledButtonBase,
 	UsernameText,
-	OnlineStatusCircle,
 } from "./styles";
 import { UserDataModel } from "../../../constants/Models/UserDataModel";
 import { useAuth } from "../../../context/AuthenticationContext";
@@ -69,7 +68,6 @@ const FriendsSidebar: React.FC<FriendsSidebarProps> = ({ side, borderPosition, i
 								<ListItemAvatar>
 									<Box sx={{ position: "relative", display: "inline-block" }}>
 										<Avatar alt={friend.username} src={friend.profilePictureUrl} />
-										<OnlineStatusCircle online={friend.onlineStatus as boolean} />
 									</Box>
 								</ListItemAvatar>
 								<ListItemText

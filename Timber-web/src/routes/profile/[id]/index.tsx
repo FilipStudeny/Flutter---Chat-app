@@ -2,6 +2,7 @@ import CloseIcon from "@mui/icons-material/Close";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
+import PersonAddIcon from "@mui/icons-material/PersonAdd";
 import RemoveCircleOutlineIcon from "@mui/icons-material/RemoveCircleOutline";
 import SaveIcon from "@mui/icons-material/Save";
 import {
@@ -29,12 +30,15 @@ import PhotosSection from "./components/PhotoSection";
 import FriendsList from "../../../components/Lists/FriendList";
 import { calculateAge, UserDataModel } from "../../../constants/Models/UserDataModel";
 import { useAuth } from "../../../context/AuthenticationContext";
+import addFriend from "../../../services/DatabaseService/addFriend";
 import getAllFriends from "../../../services/DatabaseService/getAllFriends";
 import getUser from "../../../services/DatabaseService/getUser";
 import updateProfile from "../../../services/DatabaseService/updateProfile";
 import updateProfilePicture from "../../../services/DatabaseService/updateProfilePicture";
 import getUserPhotos from "../../../services/FileStorageService/getUserPhotos";
 import { FileMetadata, uploadFile } from "../../../services/FileStorageService/uploadFile";
+import NotificationType from "../../../constants/Enums/NotificationType";
+import createNotification from "../../../services/NotificationsService/createNotification";
 
 const UserProfilePage: React.FC = () => {
 	const { id } = useParams<{ id: string }>();
@@ -52,6 +56,7 @@ const UserProfilePage: React.FC = () => {
 	const [selectedUploadedPicture, setSelectedUploadedPicture] = useState<string | null>(null);
 	const [updatedUserData, setUpdatedUserData] = useState<UserDataModel | null>(null);
 	const [friendsList, setFriendsList] = useState<UserDataModel[] | null>(null);
+	const [isFriend, setIsFriend] = useState<boolean>(false); // State to track if the user is a friend
 
 	useEffect(() => {
 		const fetchUserData = async () => {
@@ -76,6 +81,9 @@ const UserProfilePage: React.FC = () => {
 
 					if (friendsResponse.success && friendsResponse.data) {
 						setFriendsList(friendsResponse.data);
+						// Check if the current user is already a friend
+						// const friendIds = friendsResponse.data.map((friend) => friend.uid);
+						// setIsFriend(friendIds.includes(currentUser?.uid));
 					} else {
 						throw new Error(friendsResponse.message || "Failed to load friends.");
 					}
@@ -230,7 +238,33 @@ const UserProfilePage: React.FC = () => {
 		);
 	};
 
-	const handleDeleteSelectedPhotos = async () => {};
+	const handleDeleteSelectedPhotos = async () => {
+		// Implement the deletion logic here
+	};
+
+	const handleAddFriend = async () => {
+		if (currentUser?.uid && user?.uid) {
+			try {
+				// Send friend request notification
+				const notificationResponse = await createNotification(
+					currentUser.uid,
+					user.uid,
+					`${currentUser.displayName} has sent you a friend request.`,
+					NotificationType.FRIEND_REQUEST
+				);
+
+				if (notificationResponse.success) {
+					
+						toast.success("Friend request sent successfully.");
+					
+				} else {
+					toast.error(notificationResponse.message || "Failed to send friend request notification.");
+				}
+			} catch (err) {
+				toast.error(err instanceof Error ? err.message : "Unknown error occurred");
+			}
+		}
+	};
 
 	const isCurrentUserProfile = currentUser?.uid === user?.uid;
 
@@ -289,6 +323,29 @@ const UserProfilePage: React.FC = () => {
 						</Typography>
 					</Box>
 
+					{/* Add Friend Button */}
+					{!isCurrentUserProfile && !isFriend && (
+						<Box mt={2}>
+							<Button
+								variant='contained'
+								color='primary'
+								startIcon={<PersonAddIcon />}
+								onClick={handleAddFriend}
+								sx={{
+									background:
+										"linear-gradient(45deg, rgba(255,64,129,1) 0%, rgba(255,105,135,1) 100%)",
+									color: "white",
+									"&:hover": {
+										background:
+											"linear-gradient(45deg, rgba(255,64,129,0.8) 0%, rgba(255,105,135,0.8) 100%)",
+									},
+								}}
+							>
+								Add Friend
+							</Button>
+						</Box>
+					)}
+
 					<Paper elevation={3} sx={{ p: 3, width: "100%", borderRadius: 4, boxShadow: 3 }}>
 						<Box display='flex' justifyContent='space-between' alignItems='center' mb={2}>
 							<Typography variant='h6' fontWeight='bold'>
@@ -319,6 +376,7 @@ const UserProfilePage: React.FC = () => {
 						</Box>
 					</Paper>
 
+					{/* About Me Section */}
 					<Paper elevation={3} sx={{ mt: 3, p: 3, width: "100%", borderRadius: 4, boxShadow: 3 }}>
 						<Box display='flex' justifyContent='space-between' alignItems='center'>
 							<Typography variant='h6' fontWeight='bold'>

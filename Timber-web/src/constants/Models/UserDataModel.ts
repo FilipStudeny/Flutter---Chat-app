@@ -23,3 +23,17 @@ export const calculateAge = (dateOfBirth: Date | undefined): number | undefined 
 };
 
 export const genderToString = (gender: Gender): string => gender.toLowerCase();
+
+export const getFullName = (user: UserDataModel): string => {
+	const { firstName, lastName } = user;
+	if (firstName && lastName) {
+		return `${firstName} ${lastName}`;
+	}
+	if (firstName) {
+		return firstName;
+	}
+	if (lastName) {
+		return lastName;
+	}
+	return "";
+};

@@ -1,37 +1,37 @@
-import React, { useState } from 'react';
-import { Box } from '@mui/material';
-import { Outlet } from 'react-router-dom';
-import BottomNav from './BottomNavigation';
-import Header from './Header';
-import FriendsSidebar from './FriendsSidebar';  // Import the new FriendsSidebar component
-import {
-    layoutContainerStyles,
-    mainContentStyles,
-} from './styles';
+import { Box } from "@mui/material";
+import React, { useState } from "react";
+import { Outlet } from "react-router-dom";
+
+import BottomNav from "./BottomNavigation";
+import FriendsSidebar from "./FriendsSidebar"; // Import the new FriendsSidebar component
+import Header from "./Header";
+import { layoutContainerStyles, mainContentStyles } from "./styles";
 
 const AppLayout: React.FC = () => {
-    const [leftSidebarOpen, setLeftSidebarOpen] = useState(true);
+	const [leftSidebarOpen, setLeftSidebarOpen] = useState(true);
 
-    return (
-        <>
-            <Header />
+	return (
+		<>
+			<Header />
 
-            <Box sx={layoutContainerStyles}>
-                <FriendsSidebar
-                    side="left"
-                    borderPosition="right"
-                    isOpen={leftSidebarOpen}
-                    onToggle={() => setLeftSidebarOpen(!leftSidebarOpen)}
-                />
+			<Box sx={layoutContainerStyles}>
+				<FriendsSidebar
+					side='left'
+					borderPosition='right'
+					isOpen={leftSidebarOpen}
+					onToggle={() => setLeftSidebarOpen(!leftSidebarOpen)}
+				/>
 
-                <Box component="main" sx={mainContentStyles}>
-                    <Outlet />
-                </Box>
-            </Box>
+				<Box component='main' sx={mainContentStyles}>
+					<Box sx={{ width: "70%" }}>
+						<Outlet />
+					</Box>
+				</Box>
+			</Box>
 
-            <BottomNav />
-        </>
-    );
+			<BottomNav />
+		</>
+	);
 };
 
 export default AppLayout;

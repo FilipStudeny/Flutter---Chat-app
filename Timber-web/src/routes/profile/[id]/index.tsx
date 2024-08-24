@@ -28,16 +28,15 @@ import { useParams } from "react-router-dom";
 
 import PhotosSection from "./components/PhotoSection";
 import FriendsList from "../../../components/Lists/FriendList";
+import NotificationType from "../../../constants/Enums/NotificationType";
 import { calculateAge, UserDataModel } from "../../../constants/Models/UserDataModel";
 import { useAuth } from "../../../context/AuthenticationContext";
-import addFriend from "../../../services/DatabaseService/addFriend";
 import getAllFriends from "../../../services/DatabaseService/getAllFriends";
 import getUser from "../../../services/DatabaseService/getUser";
 import updateProfile from "../../../services/DatabaseService/updateProfile";
 import updateProfilePicture from "../../../services/DatabaseService/updateProfilePicture";
 import getUserPhotos from "../../../services/FileStorageService/getUserPhotos";
 import { FileMetadata, uploadFile } from "../../../services/FileStorageService/uploadFile";
-import NotificationType from "../../../constants/Enums/NotificationType";
 import createNotification from "../../../services/NotificationsService/createNotification";
 
 const UserProfilePage: React.FC = () => {
@@ -55,8 +54,7 @@ const UserProfilePage: React.FC = () => {
 	const [editModalOpen, setEditModalOpen] = useState(false);
 	const [selectedUploadedPicture, setSelectedUploadedPicture] = useState<string | null>(null);
 	const [updatedUserData, setUpdatedUserData] = useState<UserDataModel | null>(null);
-	const [friendsList, setFriendsList] = useState<UserDataModel[] | null>(null);
-	const [isFriend, setIsFriend] = useState<boolean>(false); // State to track if the user is a friend
+	const [friendsList, setFriendsList] = useState<UserDataModel[]>([]);
 
 	useEffect(() => {
 		const fetchUserData = async () => {
@@ -81,9 +79,6 @@ const UserProfilePage: React.FC = () => {
 
 					if (friendsResponse.success && friendsResponse.data) {
 						setFriendsList(friendsResponse.data);
-						// Check if the current user is already a friend
-						// const friendIds = friendsResponse.data.map((friend) => friend.uid);
-						// setIsFriend(friendIds.includes(currentUser?.uid));
 					} else {
 						throw new Error(friendsResponse.message || "Failed to load friends.");
 					}
@@ -250,13 +245,11 @@ const UserProfilePage: React.FC = () => {
 					currentUser.uid,
 					user.uid,
 					`${currentUser.displayName} has sent you a friend request.`,
-					NotificationType.FRIEND_REQUEST
+					NotificationType.FRIEND_REQUEST,
 				);
 
 				if (notificationResponse.success) {
-					
-						toast.success("Friend request sent successfully.");
-					
+					toast.success("Friend request sent successfully.");
 				} else {
 					toast.error(notificationResponse.message || "Failed to send friend request notification.");
 				}
@@ -322,9 +315,8 @@ const UserProfilePage: React.FC = () => {
 							{user?.username}, {calculateAge(user?.dateOfBirth)}
 						</Typography>
 					</Box>
-
 					{/* Add Friend Button */}
-					{!isCurrentUserProfile && !isFriend && (
+					{!isCurrentUserProfile && (
 						<Box mt={2}>
 							<Button
 								variant='contained'
@@ -345,7 +337,6 @@ const UserProfilePage: React.FC = () => {
 							</Button>
 						</Box>
 					)}
-
 					<Paper elevation={3} sx={{ p: 3, width: "100%", borderRadius: 4, boxShadow: 3 }}>
 						<Box display='flex' justifyContent='space-between' alignItems='center' mb={2}>
 							<Typography variant='h6' fontWeight='bold'>
@@ -375,7 +366,6 @@ const UserProfilePage: React.FC = () => {
 							</Typography>
 						</Box>
 					</Paper>
-
 					{/* About Me Section */}
 					<Paper elevation={3} sx={{ mt: 3, p: 3, width: "100%", borderRadius: 4, boxShadow: 3 }}>
 						<Box display='flex' justifyContent='space-between' alignItems='center'>
@@ -392,7 +382,6 @@ const UserProfilePage: React.FC = () => {
 							{user?.aboutMe || "No information provided."}
 						</Typography>
 					</Paper>
-
 					{/* Photos Section */}
 					<Paper elevation={3} sx={{ mt: 3, p: 3, width: "100%", borderRadius: 4, boxShadow: 3 }}>
 						<PhotosSection
@@ -401,8 +390,11 @@ const UserProfilePage: React.FC = () => {
 							reloadUserData={reloadUserData}
 						/>
 					</Paper>
-
-					<FriendsList friendsList={friendsList as UserDataModel[]} />
+					<Box sx={{ mb: 6, width: "100%" }}>
+						<Box>
+							<FriendsList friendsList={friendsList} hideTitle />
+						</Box>
+					</Box>
 				</Box>
 
 				{/* Modal for editing profile */}

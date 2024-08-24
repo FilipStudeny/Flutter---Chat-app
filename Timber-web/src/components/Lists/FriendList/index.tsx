@@ -20,7 +20,12 @@ import { Avatar, Card, CardContent, Container, FiltersContainer, FlexBox } from 
 import { Gender } from "../../../constants/Enums/Gender";
 import { UserDataModel } from "../../../constants/Models/UserDataModel";
 
-const FriendsList = ({ friendsList }: { friendsList: UserDataModel[] }) => {
+interface FriendsListProps {
+	friendsList?: UserDataModel[]; // Make this prop optional to handle undefined cases
+	hideTitle?: boolean;
+}
+
+const FriendsList: React.FC<FriendsListProps> = ({ friendsList = [], hideTitle = false }) => {
 	const navigate = useNavigate();
 	const [nameFilter, setNameFilter] = useState("");
 	const [genderFilter, setGenderFilter] = useState<Gender | "">("");
@@ -34,17 +39,17 @@ const FriendsList = ({ friendsList }: { friendsList: UserDataModel[] }) => {
 	};
 
 	const getGenderIcon = (gender: Gender | null) => {
-		if (gender === Gender.Male) {
-			return <MaleIcon sx={{ color: "#1976d2", marginLeft: 1, fontSize: 28 }} />;
+		switch (gender) {
+			case Gender.Male:
+				return <MaleIcon sx={{ color: "#1976d2", ml: 1, fontSize: 28 }} />;
+			case Gender.Female:
+				return <FemaleIcon sx={{ color: "#e91e63", ml: 1, fontSize: 28 }} />;
+			default:
+				return null;
 		}
-		if (gender === Gender.Female) {
-			return <FemaleIcon sx={{ color: "#e91e63", marginLeft: 1, fontSize: 28 }} />;
-		}
-		return null;
 	};
 
-	const filteredFriends = (friendsList || []).filter((friend) => {
-		if (!friend) return false;
+	const filteredFriends = friendsList.filter((friend) => {
 		const matchesName = `${friend.firstName} ${friend.lastName}`.toLowerCase().includes(nameFilter.toLowerCase());
 		const matchesGender = genderFilter === "" || friend.gender === genderFilter;
 		return matchesName && matchesGender;
@@ -52,12 +57,21 @@ const FriendsList = ({ friendsList }: { friendsList: UserDataModel[] }) => {
 
 	return (
 		<Paper elevation={3} sx={{ mt: 3, p: 3, width: "100%", borderRadius: 4, boxShadow: 3 }}>
-			<Container>
-				<Typography variant='h6' fontWeight='bold'>
-					Friends
-				</Typography>
+			<Container
+				sx={{
+					display: "flex",
+					justifyContent: hideTitle ? "flex-end" : "space-between",
+					alignItems: "center",
+					mb: 2,
+				}}
+			>
+				{!hideTitle && (
+					<Typography variant='h6' fontWeight='bold'>
+						Friends
+					</Typography>
+				)}
 
-				<FiltersContainer>
+				<FiltersContainer sx={{ display: "flex", gap: 2 }}>
 					<TextField
 						label='Filter by Name'
 						variant='outlined'
@@ -95,7 +109,7 @@ const FriendsList = ({ friendsList }: { friendsList: UserDataModel[] }) => {
 												src={friend.profilePictureUrl || ""}
 											/>
 											<CardContent>
-												<Box sx={{ display: "flex", alignItems: "center" }}>
+												<Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
 													<Typography variant='h6' fontWeight='bold'>
 														{`${friend.firstName || ""} ${friend.lastName || ""}`}
 													</Typography>

@@ -1,4 +1,4 @@
-export const getFirabaseAuthErrorMessage = (errorCode: string): string => {
+const getFirabaseAuthErrorMessage = (errorCode: string): string => {
 	switch (errorCode) {
 		case "auth/claims-too-large":
 			return "The claims payload exceeds the maximum allowed size of 1000 bytes.";
@@ -117,3 +117,5 @@ export const getFirabaseAuthErrorMessage = (errorCode: string): string => {
 			return "An unexpected error occurred. Please try again later.";
 	}
 };
+
+export default getFirabaseAuthErrorMessage;

@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import {
 	onAuthStateChanged,
 	signInWithEmailAndPassword,
@@ -10,12 +9,13 @@ import {
 	updatePassword,
 } from "firebase/auth";
 import { getDatabase, ref, set, onDisconnect, remove } from "firebase/database";
-import { createContext, ReactNode, FC, useContext, useState, useEffect } from "react";
+import { createContext, ReactNode, FC, useContext, useState, useEffect, useMemo } from "react";
 
-import { getFirabaseAuthErrorMessage } from "../../constants/Errors/firebase-auth-errors";
+import getFirabaseAuthErrorMessage from "../../constants/Errors/firebase-auth-errors";
 import { UserDataModel } from "../../constants/Models/UserDataModel";
 import { FirebaseAuth } from "../../firebase";
 import { createUser } from "../../services/DatabaseService/createUser";
+import getUser from "../../services/DatabaseService/getUser";
 import { uploadFile } from "../../services/FileStorageService/uploadFile";
 
 interface AuthResponse {
@@ -32,6 +32,7 @@ interface AuthenticationContextType {
 	resetPassword: (email: string) => Promise<AuthResponse>;
 	updateUserEmail: (email: string) => Promise<AuthResponse>;
 	updateUserPassword: (password: string) => Promise<AuthResponse>;
+	userData: UserDataModel | null;
 }
 
 const AuthenticationContext = createContext<AuthenticationContextType | null>(null);
@@ -50,28 +51,31 @@ export const useAuth = (): AuthenticationContextType => {
 
 export const AuthenticationProvider: FC<AuthenticationProviderProps> = ({ children }) => {
 	const [currentUser, setCurrentUser] = useState<User | null>(null);
+	const [userData, setUserData] = useState<UserDataModel | null>(null);
 	const [isLoading, setIsLoading] = useState<boolean>(true);
 	const database = getDatabase();
 
 	useEffect(() => {
-		const unsubscribe = onAuthStateChanged(FirebaseAuth, (user) => {
+		const unsubscribe = onAuthStateChanged(FirebaseAuth, async (user) => {
 			setCurrentUser(user);
 			setIsLoading(false);
 
 			if (user) {
 				const userStatusRef = ref(database, `/status/${user.uid}`);
+				const userResponse = await getUser(user.uid);
+				if (userResponse.success && userResponse.data) {
+					setUserData(userResponse.data);
 
-				// Set the user's online status to true
-				set(userStatusRef, {
-					online: true,
-					last_seen: Date.now(),
-				});
+					set(userStatusRef, {
+						online: true,
+						last_seen: Date.now(),
+					});
 
-				// Handle disconnect event: update the user's status to offline
-				onDisconnect(userStatusRef).set({
-					online: false,
-					last_seen: Date.now(),
-				});
+					onDisconnect(userStatusRef).set({
+						online: false,
+						last_seen: Date.now(),
+					});
+				}
 			}
 		});
 
@@ -88,6 +92,11 @@ export const AuthenticationProvider: FC<AuthenticationProviderProps> = ({ childr
 				online: true,
 				last_seen: Date.now(),
 			});
+
+			const userResponse = await getUser(userCredential.user.uid);
+			if (userResponse.success && userResponse.data) {
+				setUserData(userResponse.data);
+			}
 
 			return { success: true, user: userCredential.user };
 		} catch (error) {
@@ -116,11 +125,11 @@ export const AuthenticationProvider: FC<AuthenticationProviderProps> = ({ childr
 				`users/${userCredential.user.uid}_photos`,
 				Date.now().toString(),
 			);
-			if (photoUpload.success === false) {
+			if (!photoUpload.success) {
 				return { success: false, message: "Couldn't upload photo, try again." };
 			}
 
-			newUser.profilePictureUrl = photoUpload.data?.url as string;
+			newUser.profilePictureUrl = photoUpload.data?.url || "";
 			newUser.uid = userCredential.user.uid;
 			const userCreation = await createUser(newUser.uid, newUser);
 			if (!userCreation.success) {
@@ -166,7 +175,8 @@ export const AuthenticationProvider: FC<AuthenticationProviderProps> = ({ childr
 			await updatePassword(currentUser as User, password);
 			return { success: true };
 		} catch (error) {
-			return { success: false, message: (error as Error).message };
+			const firebaseError = error as { code: string };
+			return { success: false, message: getFirabaseAuthErrorMessage(firebaseError.code) };
 		}
 	};
 
@@ -175,20 +185,25 @@ export const AuthenticationProvider: FC<AuthenticationProviderProps> = ({ childr
 			await sendPasswordResetEmail(FirebaseAuth, email);
 			return { success: true };
 		} catch (error) {
-			return { success: false, message: (error as Error).message };
+			const firebaseError = error as { code: string };
+			return { success: false, message: getFirabaseAuthErrorMessage(firebaseError.code) };
 		}
 	};
 
-	// eslint-disable-next-line react/jsx-no-constructed-context-values
-	const value: AuthenticationContextType = {
-		currentUser,
-		login,
-		signup,
-		logout,
-		resetPassword,
-		updateUserPassword,
-		updateUserEmail,
-	};
+	// Memoize the context value to prevent unnecessary re-renders
+	const value = useMemo(
+		() => ({
+			currentUser,
+			login,
+			signup,
+			logout,
+			resetPassword,
+			updateUserPassword,
+			updateUserEmail,
+			userData,
+		}),
+		[currentUser, userData], // Dependencies for useMemo
+	);
 
 	return <AuthenticationContext.Provider value={value}>{!isLoading && children}</AuthenticationContext.Provider>;
 };

@@ -1,3 +1,4 @@
+import { FlagOutlined, MessageOutlined } from "@mui/icons-material";
 import CloseIcon from "@mui/icons-material/Close";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -41,7 +42,7 @@ import createNotification from "../../../services/NotificationsService/createNot
 
 const UserProfilePage: React.FC = () => {
 	const { id } = useParams<{ id: string }>();
-	const { currentUser } = useAuth();
+	const { currentUser, userData } = useAuth();
 
 	const [user, setUser] = useState<UserDataModel | null>(null);
 	const [uploadedPictures, setUploadedPictures] = useState<FileMetadata[]>([]);
@@ -266,6 +267,7 @@ const UserProfilePage: React.FC = () => {
 			<Toaster />
 			<Container maxWidth='md'>
 				<Box display='flex' flexDirection='column' alignItems='center' pt={4}>
+					{/* Profile Section */}
 					<Box
 						sx={{
 							position: "relative",
@@ -273,8 +275,10 @@ const UserProfilePage: React.FC = () => {
 							display: "flex",
 							flexDirection: "column",
 							alignItems: "center",
+							width: "100%",
 						}}
 					>
+						{/* Profile Avatar */}
 						<Avatar
 							alt={`${user?.firstName} ${user?.lastName}`}
 							src={user?.profilePictureUrl}
@@ -294,6 +298,8 @@ const UserProfilePage: React.FC = () => {
 							}}
 							onClick={isCurrentUserProfile ? handleOpenPhotoSelectionModal : undefined}
 						/>
+
+						{/* Username and Age Display */}
 						<Typography
 							variant='h5'
 							sx={{
@@ -307,7 +313,7 @@ const UserProfilePage: React.FC = () => {
 								borderRadius: "16px",
 								boxShadow: 2,
 								fontWeight: "bold",
-								width: "60%",
+								width: "auto",
 								textAlign: "center",
 								fontSize: "1.2rem",
 							}}
@@ -315,9 +321,28 @@ const UserProfilePage: React.FC = () => {
 							{user?.username}, {calculateAge(user?.dateOfBirth)}
 						</Typography>
 					</Box>
-					{/* Add Friend Button */}
+
+					{/* Action Buttons Section */}
 					{!isCurrentUserProfile && (
-						<Box mt={2}>
+						<Box
+							component={Paper}
+							elevation={4}
+							sx={{
+								display: "flex",
+								flexDirection: "row",
+								alignItems: "center",
+								gap: 2,
+								p: 3,
+								mt: 3,
+								mb: 3,
+								borderRadius: 2,
+								boxShadow: "0 4px 20px rgba(0, 0, 0, 0.1)",
+								backgroundColor: "#fff",
+								width: "100%",
+								mx: "auto", // Center horizontally
+							}}
+						>
+							{/* Add/Remove Friend Button */}
 							<Button
 								variant='contained'
 								color='primary'
@@ -327,16 +352,55 @@ const UserProfilePage: React.FC = () => {
 									background:
 										"linear-gradient(45deg, rgba(255,64,129,1) 0%, rgba(255,105,135,1) 100%)",
 									color: "white",
+									width: "100%",
 									"&:hover": {
 										background:
 											"linear-gradient(45deg, rgba(255,64,129,0.8) 0%, rgba(255,105,135,0.8) 100%)",
 									},
 								}}
 							>
-								Add Friend
+								{userData?.friends?.includes(user?.uid as string) ? "Remove Friend" : "Add Friend"}
+							</Button>
+
+							{/* Send Message Button */}
+							<Button
+								variant='outlined'
+								color='primary'
+								startIcon={<MessageOutlined />}
+								sx={{
+									width: "100%",
+									color: "#ff4081",
+									borderColor: "#ff4081",
+									"&:hover": {
+										backgroundColor: "rgba(255, 64, 129, 0.1)",
+										borderColor: "#ff4081",
+									},
+								}}
+							>
+								Send Message
+							</Button>
+
+							{/* Report User Button */}
+							<Button
+								variant='outlined'
+								color='secondary'
+								startIcon={<FlagOutlined />}
+								sx={{
+									width: "100%",
+									color: "#f44336",
+									borderColor: "#f44336",
+									"&:hover": {
+										backgroundColor: "rgba(244, 67, 54, 0.1)",
+										borderColor: "#f44336",
+									},
+								}}
+							>
+								Report User
 							</Button>
 						</Box>
 					)}
+
+					{/* User Information Section */}
 					<Paper elevation={3} sx={{ p: 3, width: "100%", borderRadius: 4, boxShadow: 3 }}>
 						<Box display='flex' justifyContent='space-between' alignItems='center' mb={2}>
 							<Typography variant='h6' fontWeight='bold'>
@@ -362,10 +426,12 @@ const UserProfilePage: React.FC = () => {
 								<strong>Gender:</strong> {user?.gender}
 							</Typography>
 							<Typography variant='body1' color='textSecondary'>
-								<strong>Date of Birth:</strong> {user?.dateOfBirth?.toLocaleDateString() || "N/A"}
+								<strong>Date of Birth:</strong>{" "}
+								{user?.dateOfBirth ? user.dateOfBirth.toLocaleDateString() : "N/A"}
 							</Typography>
 						</Box>
 					</Paper>
+
 					{/* About Me Section */}
 					<Paper elevation={3} sx={{ mt: 3, p: 3, width: "100%", borderRadius: 4, boxShadow: 3 }}>
 						<Box display='flex' justifyContent='space-between' alignItems='center'>
@@ -382,6 +448,7 @@ const UserProfilePage: React.FC = () => {
 							{user?.aboutMe || "No information provided."}
 						</Typography>
 					</Paper>
+
 					{/* Photos Section */}
 					<Paper elevation={3} sx={{ mt: 3, p: 3, width: "100%", borderRadius: 4, boxShadow: 3 }}>
 						<PhotosSection
@@ -390,14 +457,17 @@ const UserProfilePage: React.FC = () => {
 							reloadUserData={reloadUserData}
 						/>
 					</Paper>
+
+					{/* Friends List Section */}
 					<Box sx={{ mb: 6, width: "100%" }}>
 						<Box>
-							<FriendsList friendsList={friendsList} hideTitle />
+							<FriendsList friendsList={friendsList} />
 						</Box>
 					</Box>
 				</Box>
 
-				{/* Modal for editing profile */}
+				{/* Modals */}
+				{/* Edit Profile Modal */}
 				<Dialog open={editModalOpen} onClose={() => setEditModalOpen(false)} fullWidth maxWidth='sm'>
 					<Box sx={{ p: 4 }}>
 						<Typography variant='h6' gutterBottom>
@@ -446,10 +516,10 @@ const UserProfilePage: React.FC = () => {
 						<LocalizationProvider dateAdapter={AdapterDayjs}>
 							<DatePicker
 								label='Select Date of Birth'
-								value={user?.dateOfBirth ? dayjs(user.dateOfBirth) : null} // Convert Date to Dayjs
+								value={user?.dateOfBirth ? dayjs(user.dateOfBirth) : null}
 								onChange={(date) => {
 									if (updatedUserData && date) {
-										updatedUserData.dateOfBirth = date.toDate(); // Convert Dayjs back to Date
+										updatedUserData.dateOfBirth = date.toDate();
 										setUpdatedUserData({ ...updatedUserData });
 									}
 								}}

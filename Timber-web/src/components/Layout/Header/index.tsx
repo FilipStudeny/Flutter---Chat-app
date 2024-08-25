@@ -18,7 +18,7 @@ import { useAuth } from "../../../context/AuthenticationContext";
 
 const Header: React.FC = () => {
 	const navigate = useNavigate();
-	const { currentUser, logout } = useAuth();
+	const { currentUser, logout, userData } = useAuth();
 
 	const handleProfileClick = () => {
 		navigate(`/profile/${currentUser?.uid}`);
@@ -30,11 +30,7 @@ const Header: React.FC = () => {
 				{currentUser ? (
 					<>
 						<Button color='inherit' onClick={handleProfileClick} sx={profileButtonStyles}>
-							<Avatar
-								alt='User Name'
-								src='https://randomuser.me/api/portraits/women/71.jpg'
-								sx={avatarStyles}
-							/>
+							<Avatar alt='User Name' src={userData?.profilePictureUrl} sx={avatarStyles} />
 							<Typography variant='h6' component='span' sx={{ fontWeight: "bold", fontSize: "1rem" }}>
 								{currentUser?.email}
 							</Typography>

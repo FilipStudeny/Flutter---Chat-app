@@ -1,17 +1,11 @@
-import { CircularProgress, List, ListItemAvatar, Avatar, ListItemText, Box } from "@mui/material";
+import { CircularProgress, List, Box } from "@mui/material";
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 
-import {
-	LoadingContainer,
-	ErrorText,
-	StyledListItem,
-	StyledButtonBase,
-	UsernameText,
-} from "./styles";
+import { LoadingContainer, ErrorText } from "./styles";
 import { UserDataModel } from "../../../constants/Models/UserDataModel";
 import { useAuth } from "../../../context/AuthenticationContext";
 import getAllFriends from "../../../services/DatabaseService/getAllFriends";
+import FriendCard from "../../Cards/FriendCard";
 import Sidebar from "../Sidebar";
 
 interface FriendsSidebarProps {
@@ -27,7 +21,6 @@ const FriendsSidebar: React.FC<FriendsSidebarProps> = ({ side, borderPosition, i
 	const [error, setError] = useState<string | null>(null);
 
 	const { currentUser } = useAuth();
-	const navigate = useNavigate();
 
 	useEffect(() => {
 		const fetchFriends = async () => {
@@ -48,10 +41,6 @@ const FriendsSidebar: React.FC<FriendsSidebarProps> = ({ side, borderPosition, i
 		fetchFriends();
 	}, [currentUser?.uid]);
 
-	const handleFriendClick = (friendId: string) => {
-		navigate(`/profile/${friendId}`);
-	};
-
 	return (
 		<Sidebar side={side} borderPosition={borderPosition} isOpen={isOpen} onToggle={onToggle}>
 			{loading ? (
@@ -61,27 +50,17 @@ const FriendsSidebar: React.FC<FriendsSidebarProps> = ({ side, borderPosition, i
 			) : error ? (
 				<ErrorText>{error}</ErrorText>
 			) : (
-				<List>
-					{friends.map((friend) => (
-						<StyledListItem key={friend.uid}>
-							<StyledButtonBase onClick={() => handleFriendClick(friend.uid as string)}>
-								<ListItemAvatar>
-									<Box sx={{ position: "relative", display: "inline-block" }}>
-										<Avatar alt={friend.username} src={friend.profilePictureUrl} />
-									</Box>
-								</ListItemAvatar>
-								<ListItemText
-									primary={<UsernameText>{friend.username}</UsernameText>}
-									secondary={friend.onlineStatus ? "Online" : "Offline"}
-									primaryTypographyProps={{ sx: { fontWeight: "bold" } }}
-									secondaryTypographyProps={{
-										sx: { color: friend.onlineStatus ? "green" : "gray" },
-									}}
-								/>
-							</StyledButtonBase>
-						</StyledListItem>
-					))}
-				</List>
+				<Box sx={{ padding: 1, width: "100%" }}>
+					{" "}
+					{/* Adjust padding if necessary */}
+					<List sx={{ padding: 0, width: "100%" }}>
+						{friends.map((friend) => (
+							<Box key={friend.uid} sx={{ mb: 1, width: "100%", boxSizing: "border-box" }}>
+								<FriendCard friend={friend} />
+							</Box>
+						))}
+					</List>
+				</Box>
 			)}
 		</Sidebar>
 	);

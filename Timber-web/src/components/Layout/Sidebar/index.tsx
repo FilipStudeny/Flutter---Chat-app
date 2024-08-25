@@ -18,10 +18,20 @@ interface SidebarProps {
 	borderPosition: "left" | "right";
 	isOpen: boolean;
 	onToggle: () => void;
+	title?: string;
+	isTitleVisible?: boolean;
 	children?: React.ReactNode;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ side, borderPosition, isOpen, onToggle, children }) => {
+const Sidebar: React.FC<SidebarProps> = ({
+	side,
+	borderPosition,
+	isOpen,
+	onToggle,
+	title = "Sidebar", // Default title
+	isTitleVisible = true, // Default to true, title is visible
+	children,
+}) => {
 	if (!isOpen) {
 		return (
 			<IconButton
@@ -58,15 +68,17 @@ const Sidebar: React.FC<SidebarProps> = ({ side, borderPosition, isOpen, onToggl
 						<CloseIcon />
 					</IconButton>
 				)}
-				<Typography
-					variant='h6'
-					sx={{
-						...headerTextStyles,
-						textAlign: borderPosition === "left" ? "left" : "right",
-					}}
-				>
-					Sidebar
-				</Typography>
+				{isTitleVisible && (
+					<Typography
+						variant='h6'
+						sx={{
+							...headerTextStyles,
+							textAlign: borderPosition === "left" ? "left" : "right",
+						}}
+					>
+						{title}
+					</Typography>
+				)}
 				{borderPosition === "right" && (
 					<IconButton sx={rightCloseButtonStyles} onClick={onToggle} aria-label='close'>
 						<CloseIcon />

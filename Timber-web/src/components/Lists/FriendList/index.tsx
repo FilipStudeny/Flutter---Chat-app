@@ -1,7 +1,4 @@
-import FemaleIcon from "@mui/icons-material/Female";
-import MaleIcon from "@mui/icons-material/Male";
 import {
-	CardActionArea,
 	Typography,
 	Grid,
 	TextField,
@@ -14,11 +11,10 @@ import {
 	Paper,
 } from "@mui/material";
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
 
-import { Avatar, Card, CardContent, Container, FiltersContainer, FlexBox } from "./styles";
 import { Gender } from "../../../constants/Enums/Gender";
 import { UserDataModel } from "../../../constants/Models/UserDataModel";
+import FriendCard from "../../Cards/FriendCard";
 
 interface FriendsListProps {
 	friendsList?: UserDataModel[]; // Make this prop optional to handle undefined cases
@@ -26,7 +22,6 @@ interface FriendsListProps {
 }
 
 const FriendsList: React.FC<FriendsListProps> = ({ friendsList = [], hideTitle = false }) => {
-	const navigate = useNavigate();
 	const [nameFilter, setNameFilter] = useState("");
 	const [genderFilter, setGenderFilter] = useState<Gender | "">("");
 
@@ -38,17 +33,6 @@ const FriendsList: React.FC<FriendsListProps> = ({ friendsList = [], hideTitle =
 		setGenderFilter(event.target.value as Gender | "");
 	};
 
-	const getGenderIcon = (gender: Gender | null) => {
-		switch (gender) {
-			case Gender.Male:
-				return <MaleIcon sx={{ color: "#1976d2", ml: 1, fontSize: 28 }} />;
-			case Gender.Female:
-				return <FemaleIcon sx={{ color: "#e91e63", ml: 1, fontSize: 28 }} />;
-			default:
-				return null;
-		}
-	};
-
 	const filteredFriends = friendsList.filter((friend) => {
 		const matchesName = `${friend.firstName} ${friend.lastName}`.toLowerCase().includes(nameFilter.toLowerCase());
 		const matchesGender = genderFilter === "" || friend.gender === genderFilter;
@@ -57,7 +41,7 @@ const FriendsList: React.FC<FriendsListProps> = ({ friendsList = [], hideTitle =
 
 	return (
 		<Paper elevation={3} sx={{ mt: 3, p: 3, width: "100%", borderRadius: 4, boxShadow: 3 }}>
-			<Container
+			<Box
 				sx={{
 					display: "flex",
 					justifyContent: hideTitle ? "flex-end" : "space-between",
@@ -71,7 +55,7 @@ const FriendsList: React.FC<FriendsListProps> = ({ friendsList = [], hideTitle =
 					</Typography>
 				)}
 
-				<FiltersContainer sx={{ display: "flex", gap: 2 }}>
+				<Box sx={{ display: "flex", gap: 2 }}>
 					<TextField
 						label='Filter by Name'
 						variant='outlined'
@@ -93,35 +77,15 @@ const FriendsList: React.FC<FriendsListProps> = ({ friendsList = [], hideTitle =
 							<MenuItem value={Gender.Female}>Female</MenuItem>
 						</Select>
 					</FormControl>
-				</FiltersContainer>
-			</Container>
+				</Box>
+			</Box>
 
 			<Box>
 				{filteredFriends.length > 0 ? (
 					<Grid container spacing={3}>
 						{filteredFriends.map((friend: UserDataModel) => (
 							<Grid item xs={12} sm={6} key={friend.uid}>
-								<Card>
-									<CardActionArea onClick={() => navigate(`/profile/${friend.uid}`)}>
-										<FlexBox>
-											<Avatar
-												alt={`${friend.firstName} ${friend.lastName}`}
-												src={friend.profilePictureUrl || ""}
-											/>
-											<CardContent>
-												<Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
-													<Typography variant='h6' fontWeight='bold'>
-														{`${friend.firstName || ""} ${friend.lastName || ""}`}
-													</Typography>
-													{getGenderIcon(friend.gender as Gender)}
-												</Box>
-												<Typography variant='body2' color='textSecondary'>
-													{friend.email || "No email provided"}
-												</Typography>
-											</CardContent>
-										</FlexBox>
-									</CardActionArea>
-								</Card>
+								<FriendCard friend={friend} />
 							</Grid>
 						))}
 					</Grid>

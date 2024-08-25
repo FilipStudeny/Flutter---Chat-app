@@ -43,5 +43,4 @@ export const Avatar = styled(MuiAvatar)`
 	height: 80px;
 	margin-right: 16px;
 	border-radius: 50%;
-	border: 2px solid #ddd;
 `;

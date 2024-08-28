@@ -1,5 +1,6 @@
 import { Container, Box, Typography, CircularProgress, Button, Card, Divider, Grid } from "@mui/material";
 import React, { useEffect, useState } from "react";
+import { Toaster } from "react-hot-toast";
 
 import NotificationCard from "../../components/Cards/NotificationCard";
 import FriendsList from "../../components/Lists/FriendList";
@@ -68,6 +69,7 @@ const HomePage: React.FC = () => {
 				alignItems: "center",
 			}}
 		>
+			<Toaster position='top-right' reverseOrder={false} />
 			{/* Notifications Section */}
 			<Box sx={{ mb: 6, width: "100%" }}>
 				<Typography variant='h5' align='center' sx={{ mb: 3, fontWeight: "bold", color: "text.secondary" }}>
@@ -78,11 +80,7 @@ const HomePage: React.FC = () => {
 				<Grid container spacing={2} justifyContent='center'>
 					{notifications.slice(0, 6).map((notification) => (
 						<Grid item xs={12} sm={6} md={4} key={notification.id}>
-							<NotificationCard
-								notification={notification}
-								onAcceptFriendRequest={(id) => console.log("Accepted friend request:", id)}
-								onDeclineFriendRequest={(id) => console.log("Declined friend request:", id)}
-							/>
+							<NotificationCard notification={notification} />
 						</Grid>
 					))}
 				</Grid>

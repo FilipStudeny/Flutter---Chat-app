@@ -33,6 +33,7 @@ interface AuthenticationContextType {
 	updateUserEmail: (email: string) => Promise<AuthResponse>;
 	updateUserPassword: (password: string) => Promise<AuthResponse>;
 	userData: UserDataModel | null;
+	setUserData: React.Dispatch<React.SetStateAction<UserDataModel | null>>;
 }
 
 const AuthenticationContext = createContext<AuthenticationContextType | null>(null);
@@ -201,6 +202,7 @@ export const AuthenticationProvider: FC<AuthenticationProviderProps> = ({ childr
 			updateUserPassword,
 			updateUserEmail,
 			userData,
+			setUserData,
 		}),
 		[currentUser, userData], // Dependencies for useMemo
 	);

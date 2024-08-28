@@ -18,6 +18,10 @@ import {
 	TextField,
 	Dialog,
 	Checkbox,
+	DialogTitle,
+	DialogContent,
+	DialogContentText,
+	DialogActions,
 } from "@mui/material";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
@@ -34,6 +38,7 @@ import { calculateAge, UserDataModel } from "../../../constants/Models/UserDataM
 import { useAuth } from "../../../context/AuthenticationContext";
 import getAllFriends from "../../../services/DatabaseService/getAllFriends";
 import getUser from "../../../services/DatabaseService/getUser";
+import removeFriend from "../../../services/DatabaseService/removeFriend";
 import updateProfile from "../../../services/DatabaseService/updateProfile";
 import updateProfilePicture from "../../../services/DatabaseService/updateProfilePicture";
 import getUserPhotos from "../../../services/FileStorageService/getUserPhotos";
@@ -42,7 +47,7 @@ import createNotification from "../../../services/NotificationsService/createNot
 
 const UserProfilePage: React.FC = () => {
 	const { id } = useParams<{ id: string }>();
-	const { currentUser, userData } = useAuth();
+	const { currentUser, userData, setUserData } = useAuth();
 
 	const [user, setUser] = useState<UserDataModel | null>(null);
 	const [uploadedPictures, setUploadedPictures] = useState<FileMetadata[]>([]);
@@ -56,6 +61,7 @@ const UserProfilePage: React.FC = () => {
 	const [selectedUploadedPicture, setSelectedUploadedPicture] = useState<string | null>(null);
 	const [updatedUserData, setUpdatedUserData] = useState<UserDataModel | null>(null);
 	const [friendsList, setFriendsList] = useState<UserDataModel[]>([]);
+	const [confirmRemoveFriendOpen, setConfirmRemoveFriendOpen] = useState<boolean>(false);
 
 	useEffect(() => {
 		const fetchUserData = async () => {
@@ -238,21 +244,66 @@ const UserProfilePage: React.FC = () => {
 		// Implement the deletion logic here
 	};
 
-	const handleAddFriend = async () => {
+	const handleToggleFriend = async () => {
 		if (currentUser?.uid && user?.uid) {
 			try {
-				// Send friend request notification
-				const notificationResponse = await createNotification(
-					currentUser.uid,
-					user.uid,
-					`${currentUser.displayName} has sent you a friend request.`,
-					NotificationType.FRIEND_REQUEST,
-				);
-
-				if (notificationResponse.success) {
-					toast.success("Friend request sent successfully.");
+				if (userData?.friends?.includes(user.uid)) {
+					const response = await removeFriend(currentUser.uid, user.uid);
+					if (response.success) {
+						toast.success("Friend removed successfully.");
+						setFriendsList(friendsList.filter((friend) => friend.uid !== user.uid));
+					} else {
+						toast.error(response.message || "Failed to remove friend.");
+					}
 				} else {
-					toast.error(notificationResponse.message || "Failed to send friend request notification.");
+					const notificationResponse = await createNotification(
+						currentUser.uid,
+						user.uid,
+						`${currentUser.displayName} has sent you a friend request.`,
+						NotificationType.FRIEND_REQUEST,
+					);
+
+					if (notificationResponse.success) {
+						toast.success("Friend request sent successfully.");
+					} else {
+						toast.error(notificationResponse.message || "Failed to send friend request notification.");
+					}
+				}
+			} catch (err) {
+				toast.error(err instanceof Error ? err.message : "Unknown error occurred");
+			}
+		}
+	};
+
+	const handleOpenRemoveFriendModal = () => {
+		setConfirmRemoveFriendOpen(true);
+	};
+
+	const handleCloseRemoveFriendModal = () => {
+		setConfirmRemoveFriendOpen(false);
+	};
+
+	const handleConfirmRemoveFriend = async () => {
+		if (currentUser?.uid && user?.uid) {
+			try {
+				const response = await removeFriend(currentUser.uid, user.uid);
+				if (response.success) {
+					toast.success("Friend removed successfully.");
+
+					setFriendsList((prevFriendsList) => prevFriendsList.filter((friend) => friend.uid !== user.uid));
+
+					if (userData) {
+						const updatedFriends = userData.friends?.filter((friendId) => friendId !== user.uid) || [];
+
+						setUserData({
+							...userData,
+							friends: updatedFriends,
+						});
+					}
+
+					handleCloseRemoveFriendModal();
+				} else {
+					toast.error(response.message || "Failed to remove friend.");
 				}
 			} catch (err) {
 				toast.error(err instanceof Error ? err.message : "Unknown error occurred");
@@ -346,8 +397,18 @@ const UserProfilePage: React.FC = () => {
 							<Button
 								variant='contained'
 								color='primary'
-								startIcon={<PersonAddIcon />}
-								onClick={handleAddFriend}
+								startIcon={
+									userData?.friends?.includes(user?.uid as string) ? (
+										<RemoveCircleOutlineIcon />
+									) : (
+										<PersonAddIcon />
+									)
+								}
+								onClick={
+									userData?.friends?.includes(user?.uid as string)
+										? handleOpenRemoveFriendModal
+										: handleToggleFriend
+								}
 								sx={{
 									background:
 										"linear-gradient(45deg, rgba(255,64,129,1) 0%, rgba(255,105,135,1) 100%)",
@@ -361,6 +422,68 @@ const UserProfilePage: React.FC = () => {
 							>
 								{userData?.friends?.includes(user?.uid as string) ? "Remove Friend" : "Add Friend"}
 							</Button>
+
+							{/* Modal for confirming friend removal */}
+							{/* Modal for confirming friend removal */}
+							<Dialog
+								open={confirmRemoveFriendOpen}
+								onClose={handleCloseRemoveFriendModal}
+								fullWidth
+								maxWidth='xs'
+								PaperProps={{
+									sx: {
+										borderRadius: 4,
+										padding: 2,
+										backgroundColor: "#fff3f8",
+										boxShadow: "0px 4px 10px rgba(0, 0, 0, 0.1)",
+									},
+								}}
+							>
+								<DialogTitle sx={{ textAlign: "center", fontWeight: "bold", color: "#d81b60" }}>
+									Remove Friend
+								</DialogTitle>
+								<DialogContent sx={{ textAlign: "center", paddingY: 2 }}>
+									<DialogContentText sx={{ color: "#555", fontSize: "1rem", marginBottom: 2 }}>
+										Are you sure you want to remove{" "}
+										<strong>
+											{user?.firstName} {user?.lastName}
+										</strong>{" "}
+										from your friends?
+									</DialogContentText>
+								</DialogContent>
+								<DialogActions sx={{ justifyContent: "center", paddingX: 3 }}>
+									<Button
+										onClick={handleCloseRemoveFriendModal}
+										variant='outlined'
+										sx={{
+											borderColor: "#ff4081",
+											color: "#ff4081",
+											paddingX: 3,
+											"&:hover": {
+												backgroundColor: "rgba(255, 64, 129, 0.1)",
+												borderColor: "#ff4081",
+											},
+										}}
+									>
+										Cancel
+									</Button>
+									<Button
+										onClick={handleConfirmRemoveFriend}
+										variant='contained'
+										sx={{
+											backgroundColor: "#ff4081",
+											color: "#fff",
+											paddingX: 3,
+											marginLeft: 2,
+											"&:hover": {
+												backgroundColor: "#d81b60",
+											},
+										}}
+									>
+										Remove
+									</Button>
+								</DialogActions>
+							</Dialog>
 
 							{/* Send Message Button */}
 							<Button

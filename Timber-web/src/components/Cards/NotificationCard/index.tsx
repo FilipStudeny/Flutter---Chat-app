@@ -3,21 +3,21 @@ import NotificationsIcon from "@mui/icons-material/Notifications";
 import PersonAddIcon from "@mui/icons-material/PersonAdd";
 import { Card, IconButton, Box, Typography, Button } from "@mui/material";
 import React from "react";
+import toast from "react-hot-toast"; // Import toast for notifications
 
 import NotificationType from "../../../constants/Enums/NotificationType";
 import UserNotification from "../../../constants/Models/UserNotification";
+import { useAuth } from "../../../context/AuthenticationContext"; // Import useAuth to get current user
+import addFriend from "../../../services/DatabaseService/addFriend"; // Import addFriend function
+import deleteNotification from "../../../services/NotificationsService/deleteNotification";
 
 interface NotificationCardProps {
 	notification: UserNotification;
-	onAcceptFriendRequest?: (id: string) => void; // Function to handle accepting friend request
-	onDeclineFriendRequest?: (id: string) => void; // Function to handle declining friend request
 }
 
-const NotificationCard: React.FC<NotificationCardProps> = ({
-	notification,
-	onAcceptFriendRequest,
-	onDeclineFriendRequest,
-}) => {
+const NotificationCard: React.FC<NotificationCardProps> = ({ notification }) => {
+	const { currentUser } = useAuth(); // Get current user from context
+
 	const renderNotificationIcon = (type: NotificationType) => {
 		switch (type) {
 			case NotificationType.MESSAGE:
@@ -30,15 +30,38 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
 		}
 	};
 
-	const handleAccept = () => {
-		if (onAcceptFriendRequest) {
-			onAcceptFriendRequest(notification.id); // Call the accept handler if provided
+	const handleDeclineFriendRequest = async (notificationId: string) => {
+		if (!currentUser) {
+			toast.error("User not authenticated.");
+			return;
+		}
+
+		try {
+			const response = await deleteNotification(currentUser.uid, notificationId);
+			if (response.success) {
+				toast.success("Notification deleted successfully.");
+			} else {
+				toast.error(response.message || "Failed to delete notification.");
+			}
+		} catch (error) {
+			toast.error("An error occurred while deleting the notification.");
 		}
 	};
 
-	const handleDecline = () => {
-		if (onDeclineFriendRequest) {
-			onDeclineFriendRequest(notification.id); // Call the decline handler if provided
+	const handleAccept = async () => {
+		if (currentUser && notification.senderId) {
+			try {
+				const response = await addFriend(currentUser.uid, notification.senderId);
+				if (response.success) {
+					toast.success("Friend request accepted!");
+					// Optionally remove the notification after accepting the friend request
+					await handleDeclineFriendRequest(notification.id);
+				} else {
+					toast.error(response.message || "Failed to accept friend request.");
+				}
+			} catch (error) {
+				toast.error("An error occurred while accepting the friend request.");
+			}
 		}
 	};
 
@@ -90,7 +113,7 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
 					<Button
 						variant='outlined'
 						size='small'
-						onClick={handleDecline}
+						onClick={() => handleDeclineFriendRequest(notification.id)}
 						sx={{
 							background: "linear-gradient(45deg, rgba(255,64,129,1) 0%, rgba(255,105,135,1) 100%)",
 							color: "#fff",

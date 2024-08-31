@@ -1,32 +1,30 @@
+import EditIcon from "@mui/icons-material/Edit"; // Import Edit Icon
 import FemaleIcon from "@mui/icons-material/Female";
 import MaleIcon from "@mui/icons-material/Male";
 import {
 	Box,
 	Typography,
-	Select,
-	MenuItem,
-	FormControl,
-	InputLabel,
+	IconButton,
 	Grid,
 	Button,
 	CircularProgress,
-	SelectChangeEvent,
-	Divider,
 	TextField,
 	Slider,
+	Dialog,
+	DialogTitle,
+	DialogContent,
+	DialogActions,
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
-import { DocumentData, DocumentSnapshot } from "firebase/firestore";
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { Toaster } from "react-hot-toast";
 
 import UserCard from "../../components/Cards/UserCard";
 import { Gender } from "../../constants/Enums/Gender";
 import { UserDataModel } from "../../constants/Models/UserDataModel";
-import { useAuth } from "../../context/AuthenticationContext";
-import getAllUsers from "../../services/DatabaseService/getAllUsers";
+import { useGetAllUsersSearch } from "../../hooks";
 
-// Define the styled TextField component
+// Styled components with improved styles
 const StyledTextField = styled(TextField)({
 	"& .MuiOutlinedInput-root": {
 		"& fieldset": {
@@ -42,13 +40,13 @@ const StyledTextField = styled(TextField)({
 	"& .MuiInputLabel-root.Mui-focused": {
 		color: "#FF4081",
 	},
+	marginBottom: "16px", // Additional spacing
 });
 
-// Define the styled Slider component
 const GradientSlider = styled(Slider)({
-	color: "#FF4081", // Default color for the thumb
+	color: "#FF4081",
 	"& .MuiSlider-track": {
-		background: "linear-gradient(45deg, rgba(255,64,129,1) 0%, rgba(255,105,135,1) 100%)", // Gradient for the track
+		background: "linear-gradient(45deg, rgba(255,64,129,1) 0%, rgba(255,105,135,1) 100%)",
 		border: "none",
 	},
 	"& .MuiSlider-rail": {
@@ -62,77 +60,48 @@ const GradientSlider = styled(Slider)({
 			boxShadow: "inherit",
 		},
 	},
+	marginTop: "16px", // Improved spacing
+});
+
+const StyledButton = styled(Button)({
+	borderRadius: "30px",
+	background: "linear-gradient(45deg, rgba(255,64,129,1) 0%, rgba(255,105,135,1) 100%)",
+	color: "white",
+	textTransform: "none",
+	padding: "10px 30px",
+	fontWeight: "bold",
+	transition: "background-color 0.3s ease",
+	"&:hover": {
+		background: "linear-gradient(45deg, rgba(255,105,135,1) 0%, rgba(255,64,129,1) 100%)",
+	},
+});
+
+const StyledIconButton = styled(IconButton)({
+	borderRadius: "50%",
+	margin: "0 8px",
+	transition: "background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease",
+	border: "2px solid transparent",
+	"&:hover": {
+		backgroundColor: "rgba(255, 64, 129, 0.1)",
+	},
+	"&.selected": {
+		backgroundColor: "#FF4081",
+		borderColor: "#FF4081",
+		color: "#ffffff",
+	},
 });
 
 const SearchPage: React.FC = () => {
 	const [searchQuery, setSearchQuery] = useState<string>("");
 	const [ageRange, setAgeRange] = useState<number[]>([18, 99]);
 	const [genderFilter, setGenderFilter] = useState<Gender | "">("");
-	const [searchResults, setSearchResults] = useState<UserDataModel[]>([]);
-	const [loading, setLoading] = useState<boolean>(false);
-	const [error, setError] = useState<string | null>(null);
-	const [lastDocument, setLastDocument] = useState<DocumentSnapshot<DocumentData> | undefined>(undefined);
-	const [hasMore, setHasMore] = useState<boolean>(true);
-	const [noResultsFound, setNoResultsFound] = useState<boolean>(false);
+	const [ageDialogOpen, setAgeDialogOpen] = useState<boolean>(false);
 
-	const { currentUser } = useAuth();
-
-	const handleSearch = async (reset: boolean = false) => {
-		if (loading) return;
-
-		setLoading(true);
-		setError(null);
-
-		if (reset) {
-			setLastDocument(undefined);
-			setHasMore(true);
-			setNoResultsFound(false);
-			setSearchResults([]);
-		}
-
-		const [minAge, maxAge] = ageRange;
-
-		try {
-			const response = await getAllUsers({
-				limit: 3,
-				lastDocument: reset ? undefined : lastDocument,
-				excludeId: currentUser?.uid,
-				gender: genderFilter ? (genderFilter as Gender) : undefined,
-				minAge,
-				maxAge,
-				username: searchQuery.trim(),
-			});
-
-			if (response.success) {
-				const newUsers = response.data || [];
-
-				if (newUsers.length === 0 && reset) {
-					setNoResultsFound(true);
-				} else {
-					setNoResultsFound(false);
-				}
-
-				setSearchResults((prevResults) => (reset ? newUsers : [...prevResults, ...newUsers]));
-
-				// Update lastDocument for pagination if more users exist
-				if (newUsers.length > 0 && response.data !== undefined) {
-					const lastVisible = response.data[response.data.length - 1];
-					setLastDocument(lastVisible as DocumentSnapshot<DocumentData>);
-
-					setHasMore(newUsers.length === 3);
-				} else {
-					setHasMore(false);
-				}
-			} else {
-				setError(response.message || "Error fetching users.");
-				setHasMore(false);
-			}
-		} catch (err) {
-			setError("An error occurred while fetching users.");
-		} finally {
-			setLoading(false);
-		}
-	};
+	const { loading, error, searchResults, hasMore, noResultsFound, fetchUsers } = useGetAllUsersSearch({
+		ageRange,
+		genderFilter,
+		searchQuery,
+	});
 
 	const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
 		setSearchQuery(event.target.value);
@@ -142,18 +111,25 @@ const SearchPage: React.FC = () => {
 		setAgeRange(newValue as number[]);
 	};
 
-	const handleGenderFilterChange = (event: SelectChangeEvent<string>) => {
-		setGenderFilter(event.target.value as Gender);
+	const handleGenderFilterChange = (gender: Gender) => {
+		setGenderFilter(genderFilter === gender ? "" : gender);
 	};
 
+	const handleOpenAgeDialog = () => {
+		setAgeDialogOpen(true);
+	};
+
+	const handleCloseAgeDialog = () => {
+		setAgeDialogOpen(false);
+	};
+
+	// Define the missing handleLoadMore function
 	const handleLoadMore = () => {
-		if (!loading && hasMore) {
-			handleSearch(false);
-		}
+		fetchUsers(false);
 	};
 
 	useEffect(() => {
-		handleSearch(true);
+		fetchUsers(true);
 	}, []);
 
 	return (
@@ -166,27 +142,13 @@ const SearchPage: React.FC = () => {
 					mb: 4,
 					width: "100%",
 					maxWidth: "900px",
-					padding: 2,
+					padding: 3,
 					borderRadius: 2,
 					boxShadow: 3,
 					backgroundColor: "white",
+					margin: "0 auto", // Center the search section
 				}}
 			>
-				<Typography variant='h6' align='center' sx={{ mb: 2, fontWeight: "medium", color: "text.secondary" }}>
-					Search Users
-				</Typography>
-
-				{/* Search Input */}
-				<Box sx={{ mb: 2 }}>
-					<StyledTextField
-						label='Search by name or surname'
-						variant='outlined'
-						fullWidth
-						value={searchQuery}
-						onChange={handleSearchChange}
-					/>
-				</Box>
-
 				{/* Filters Section */}
 				<Box
 					sx={{
@@ -197,66 +159,117 @@ const SearchPage: React.FC = () => {
 						flexWrap: "wrap",
 					}}
 				>
-					<Box sx={{ flex: 1, textAlign: "center" }}>
-						<Typography gutterBottom>
-							Age Range: {ageRange[0]} - {ageRange[1]}
-						</Typography>
-						<GradientSlider
-							value={ageRange}
-							onChange={handleAgeRangeChange}
-							valueLabelDisplay='auto'
-							min={18}
-							max={99}
-							step={1}
-							marks={[
-								{ value: 18, label: "18" },
-								{ value: 99, label: "99" },
-							]}
-						/>
-					</Box>
-					<FormControl sx={{ width: "150px" }} variant='outlined'>
-						<InputLabel id='gender-filter' shrink>
-							Gender
-						</InputLabel>
-						<Select
-							value={genderFilter}
-							onChange={handleGenderFilterChange}
-							displayEmpty
-							notched
-							id='gender-filter'
-							label='Gender'
-						>
-							<MenuItem value=''>
-								<em>Any</em>
-							</MenuItem>
-							<MenuItem value={Gender.Male}>
-								<MaleIcon sx={{ marginRight: 1 }} /> Male
-							</MenuItem>
-							<MenuItem value={Gender.Female}>
-								<FemaleIcon sx={{ marginRight: 1 }} /> Female
-							</MenuItem>
-						</Select>
-					</FormControl>
-					<Button
-						variant='contained'
-						sx={{
-							background: "linear-gradient(45deg, rgba(255,64,129,1) 0%, rgba(255,105,135,1) 100%)",
-							color: "white",
-							minWidth: "100px",
-							"&:hover": {
-								background: "linear-gradient(45deg, rgba(255,105,135,1) 0%, rgba(255,64,129,1) 100%)",
-							},
-						}}
-						onClick={() => handleSearch(true)}
-						disabled={loading}
+					{/* Search Input */}
+					<StyledTextField
+						label='Search by name or surname'
+						variant='outlined'
+						value={searchQuery}
+						onChange={handleSearchChange}
+						sx={{ flex: 2, minWidth: "200px" }} // Adjusted width to align with other filters
+					/>
+
+					{/* Age Range Display with Edit Icon */}
+					<Box
+						sx={{ display: "flex", alignItems: "center", flex: 1, cursor: "pointer" }}
+						onClick={handleOpenAgeDialog}
 					>
-						{loading ? "Searching..." : "Search"}
-					</Button>
+						<Typography
+							variant='body1'
+							sx={{
+								mr: 1,
+								color: "#333",
+								fontWeight: "bold",
+								display: "inline",
+							}}
+						>
+							Age Range:{" "}
+						</Typography>
+						<Typography
+							variant='body1'
+							sx={{
+								color: "#FF4081",
+								fontWeight: "bold",
+								display: "inline",
+							}}
+						>
+							{ageRange[0]} - {ageRange[1]}
+						</Typography>
+						<IconButton size='small' sx={{ ml: 1 }}>
+							<EditIcon
+								fontSize='small'
+								sx={{
+									color: "#FF4081", // Highlight color for selected age range
+								}}
+							/>
+						</IconButton>
+					</Box>
+
+					{/* Gender Selection with IconButtons */}
+					<Box sx={{ display: "flex", alignItems: "center" }}>
+						<StyledIconButton
+							onClick={() => handleGenderFilterChange(Gender.Male)}
+							className={genderFilter === Gender.Male ? "selected" : ""}
+						>
+							<MaleIcon />
+						</StyledIconButton>
+						<StyledIconButton
+							onClick={() => handleGenderFilterChange(Gender.Female)}
+							className={genderFilter === Gender.Female ? "selected" : ""}
+						>
+							<FemaleIcon />
+						</StyledIconButton>
+					</Box>
+
+					{/* Search Button */}
+					<StyledButton onClick={() => fetchUsers(true)} disabled={loading}>
+						{loading ? <CircularProgress size={24} color='inherit' /> : "Search"}
+					</StyledButton>
 				</Box>
 			</Box>
 
-			{/* Divider between sections */}
-			<Divider sx={{ width: "100%", maxWidth: "900px", mb: 4 }} />
+			{/* Dialog for Age Range Selection */}
+			<Dialog
+				open={ageDialogOpen}
+				onClose={handleCloseAgeDialog}
+				aria-labelledby='age-range-dialog'
+				maxWidth='sm'
+				fullWidth
+			>
+				<DialogTitle id='age-range-dialog'>
+					Select Age Range:{" "}
+					<Typography
+						variant='body1'
+						sx={{
+							color: "#FF4081",
+							fontWeight: "bold",
+							display: "inline",
+							fontSize: "20px",
+						}}
+					>
+						{ageRange[0]} - {ageRange[1]}
+					</Typography>
+				</DialogTitle>
+				<DialogContent>
+					<GradientSlider
+						value={ageRange}
+						onChange={handleAgeRangeChange}
+						valueLabelDisplay='auto'
+						min={18}
+						max={99}
+						step={1}
+						marks={[
+							{ value: 18, label: "18" },
+							{ value: 99, label: "99" },
+						]}
+						sx={{
+							marginTop: "50px",
+						}}
+					/>
+				</DialogContent>
+				<DialogActions>
+					<StyledButton onClick={handleCloseAgeDialog}>Done</StyledButton>
+				</DialogActions>
+			</Dialog>
 
 			{/* Search Results Section */}
 			<Box
@@ -267,11 +280,13 @@ const SearchPage: React.FC = () => {
 					backgroundColor: "white",
 					borderRadius: 2,
 					boxShadow: 1,
-					p: 2,
+					p: 3,
+					margin: "0 auto",
+					marginTop: "24px",
 				}}
 			>
-				<Typography variant='h6' align='center' sx={{ mb: 2, fontWeight: "medium", color: "text.secondary" }}>
-					Search Results
+				<Typography variant='h6' align='left' sx={{ mb: 3, fontWeight: "medium", color: "text.secondary" }}>
+					Found users
 				</Typography>
 
 				{loading && searchResults.length === 0 ? (
@@ -280,12 +295,12 @@ const SearchPage: React.FC = () => {
 					</Box>
 				) : noResultsFound ? (
 					<Typography variant='body2' align='center' color='error'>
-						No users found.
+						No users found. Please adjust your search criteria.
 					</Typography>
 				) : (
 					<>
 						<Grid container spacing={2}>
-							{searchResults.map((user) => (
+							{searchResults.map((user: UserDataModel) => (
 								<Grid item xs={12} sm={6} md={4} key={user.uid}>
 									<UserCard user={user} />
 								</Grid>
@@ -295,22 +310,9 @@ const SearchPage: React.FC = () => {
 						{/* Load More Button */}
 						{hasMore && (
 							<Box sx={{ display: "flex", justifyContent: "center", mt: 3 }}>
-								<Button
-									variant='contained'
-									sx={{
-										background:
-											"linear-gradient(45deg, rgba(255,64,129,1) 0%, rgba(255,105,135,1) 100%)",
-										color: "white",
-										"&:hover": {
-											background:
-												"linear-gradient(45deg, rgba(255,105,135,1) 0%, rgba(255,64,129,1) 100%)",
-										},
-									}}
-									onClick={handleLoadMore}
-									disabled={loading}
-								>
-									{loading ? "Loading..." : "Load More"}
-								</Button>
+								<StyledButton onClick={handleLoadMore} disabled={loading}>
+									{loading ? <CircularProgress size={24} color='inherit' /> : "Load More"}
+								</StyledButton>
 							</Box>
 						)}
 

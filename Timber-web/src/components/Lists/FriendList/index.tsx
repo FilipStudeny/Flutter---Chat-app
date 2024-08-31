@@ -14,7 +14,7 @@ import React, { useState } from "react";
 
 import { Gender } from "../../../constants/Enums/Gender";
 import { UserDataModel } from "../../../constants/Models/UserDataModel";
-import FriendCard from "../../Cards/FriendCard";
+import UserCard from "../../Cards/UserCard";
 
 interface FriendsListProps {
 	friendsList?: UserDataModel[]; // Make this prop optional to handle undefined cases
@@ -85,7 +85,7 @@ const FriendsList: React.FC<FriendsListProps> = ({ friendsList = [], hideTitle =
 					<Grid container spacing={3}>
 						{filteredFriends.map((friend: UserDataModel) => (
 							<Grid item xs={12} sm={6} key={friend.uid}>
-								<FriendCard friend={friend} />
+								<UserCard user={friend} />
 							</Grid>
 						))}
 					</Grid>

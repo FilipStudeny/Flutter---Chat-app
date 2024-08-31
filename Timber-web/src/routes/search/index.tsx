@@ -1,7 +1,5 @@
 import FemaleIcon from "@mui/icons-material/Female";
 import MaleIcon from "@mui/icons-material/Male";
-import PersonAddIcon from "@mui/icons-material/PersonAdd";
-import VisibilityIcon from "@mui/icons-material/Visibility";
 import {
 	Box,
 	Typography,
@@ -10,24 +8,21 @@ import {
 	FormControl,
 	InputLabel,
 	Grid,
-	Card,
-	CardContent,
 	Button,
 	CircularProgress,
 	SelectChangeEvent,
 	Divider,
-	Avatar,
 	TextField,
 	Slider,
-	IconButton,
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import { DocumentData, DocumentSnapshot } from "firebase/firestore";
 import React, { useState, useEffect } from "react";
 import { Toaster } from "react-hot-toast";
 
+import UserCard from "../../components/Cards/UserCard";
 import { Gender } from "../../constants/Enums/Gender";
-import { calculateAge, UserDataModel } from "../../constants/Models/UserDataModel";
+import { UserDataModel } from "../../constants/Models/UserDataModel";
 import { useAuth } from "../../context/AuthenticationContext";
 import getAllUsers from "../../services/DatabaseService/getAllUsers";
 
@@ -219,7 +214,7 @@ const SearchPage: React.FC = () => {
 							]}
 						/>
 					</Box>
-					<FormControl sx={{ flex: 1, minWidth: 150 }} variant='outlined'>
+					<FormControl sx={{ width: "150px" }} variant='outlined'>
 						<InputLabel id='gender-filter' shrink>
 							Gender
 						</InputLabel>
@@ -292,76 +287,7 @@ const SearchPage: React.FC = () => {
 						<Grid container spacing={2}>
 							{searchResults.map((user) => (
 								<Grid item xs={12} sm={6} md={4} key={user.uid}>
-									<Card
-										sx={{
-											boxShadow: 3,
-											borderRadius: 2,
-											transition: "transform 0.2s",
-											"&:hover": {
-												transform: "scale(1.02)",
-											},
-											height: "100%", // Ensure all cards have the same height
-											display: "flex",
-											flexDirection: "column",
-											justifyContent: "space-between",
-											alignItems: "center",
-											p: 2,
-										}}
-									>
-										<CardContent
-											sx={{
-												display: "flex",
-												flexDirection: "column",
-												alignItems: "center",
-											}}
-										>
-											<Avatar
-												src={user.profilePictureUrl || "/default-profile.png"}
-												alt={user.username}
-												sx={{ width: 80, height: 80, mb: 2 }}
-											/>
-											<Typography variant='h6' sx={{ fontWeight: "bold" }}>
-												{user.firstName} {user.lastName}
-											</Typography>
-											<Typography variant='body2' color='text.secondary'>
-												Username: {user.username}
-											</Typography>
-											<Typography variant='body2' color='text.secondary'>
-												Age: {calculateAge(user.dateOfBirth as Date)}
-											</Typography>
-											<Typography variant='body2' color='text.secondary'>
-												Gender: {user.gender || "N/A"}
-											</Typography>
-										</CardContent>
-										<Box sx={{ display: "flex", justifyContent: "center", gap: 1, mt: 2 }}>
-											<IconButton
-												color="primary"
-												aria-label="add friend"
-												sx={{
-													backgroundColor: "#FF4081",
-													color: "white",
-													"&:hover": {
-														backgroundColor: "#FF1053",
-													},
-												}}
-											>
-												<PersonAddIcon />
-											</IconButton>
-											<IconButton
-												color="primary"
-												aria-label="view profile"
-												sx={{
-													backgroundColor: "#FF4081",
-													color: "white",
-													"&:hover": {
-														backgroundColor: "#FF1053",
-													},
-												}}
-											>
-												<VisibilityIcon />
-											</IconButton>
-										</Box>
-									</Card>
+									<UserCard user={user} />
 								</Grid>
 							))}
 						</Grid>

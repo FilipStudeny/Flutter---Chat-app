@@ -37,34 +37,35 @@ const getAllUsers = async ({
 	try {
 		const usersCollection = collection(FirebaseFireStore, "users");
 
-		// Base query: Start with ordering by __name__ for pagination
-		let userQuery: Query<DocumentData> = query(usersCollection, orderBy("__name__"), limit(resultLimit));
+		// Determine the base query depending on whether a username filter is applied
+		let userQuery: Query<DocumentData>;
 
-		const filters = [];
-
-		// Exclude a specific ID if provided
-		if (excludeId) {
-			filters.push(where("__name__", "!=", excludeId));
-		}
-
-		// Add username filter if specified
 		if (username) {
-			filters.push(where("username", "==", username));
+			// If searching by username, order by username first for prefix match
+			userQuery = query(
+				usersCollection,
+				orderBy("username"),
+				where("username", ">=", username),
+				where("username", "<", `${username}\uf8ff`),
+			);
+		} else {
+			// Otherwise, order by document ID for pagination
+			userQuery = query(usersCollection, orderBy("__name__"), limit(resultLimit));
 		}
 
-		// Add gender filter if specified
+		// Add other filters
+		if (excludeId) {
+			userQuery = query(userQuery, where("__name__", "!=", excludeId));
+		}
+
 		if (gender) {
-			filters.push(where("gender", "==", gender));
-		}
-
-		// Combine filters with the base query
-		if (filters.length > 0) {
-			userQuery = query(userQuery, ...filters);
+			userQuery = query(userQuery, where("gender", "==", gender));
 		}
 
 		// Pagination: start after the last document if provided
 		if (lastDocument) {
-			userQuery = query(userQuery, startAfter(lastDocument));
+			const documentId = lastDocument as UserDataModel;
+			userQuery = query(userQuery, startAfter(documentId.uid));
 		}
 
 		// Execute the query

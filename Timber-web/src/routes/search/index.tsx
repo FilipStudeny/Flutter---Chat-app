@@ -1,8 +1,10 @@
+import FemaleIcon from "@mui/icons-material/Female";
+import MaleIcon from "@mui/icons-material/Male";
+import PersonAddIcon from "@mui/icons-material/PersonAdd";
+import VisibilityIcon from "@mui/icons-material/Visibility";
 import {
-	Container,
 	Box,
 	Typography,
-	TextField,
 	Select,
 	MenuItem,
 	FormControl,
@@ -13,8 +15,13 @@ import {
 	Button,
 	CircularProgress,
 	SelectChangeEvent,
+	Divider,
+	Avatar,
+	TextField,
 	Slider,
+	IconButton,
 } from "@mui/material";
+import { styled } from "@mui/material/styles";
 import { DocumentData, DocumentSnapshot } from "firebase/firestore";
 import React, { useState, useEffect } from "react";
 import { Toaster } from "react-hot-toast";
@@ -23,6 +30,44 @@ import { Gender } from "../../constants/Enums/Gender";
 import { calculateAge, UserDataModel } from "../../constants/Models/UserDataModel";
 import { useAuth } from "../../context/AuthenticationContext";
 import getAllUsers from "../../services/DatabaseService/getAllUsers";
+
+// Define the styled TextField component
+const StyledTextField = styled(TextField)({
+	"& .MuiOutlinedInput-root": {
+		"& fieldset": {
+			borderColor: "#ccc",
+		},
+		"&:hover fieldset": {
+			borderColor: "#FF4081",
+		},
+		"&.Mui-focused fieldset": {
+			borderColor: "#FF4081",
+		},
+	},
+	"& .MuiInputLabel-root.Mui-focused": {
+		color: "#FF4081",
+	},
+});
+
+// Define the styled Slider component
+const GradientSlider = styled(Slider)({
+	color: "#FF4081", // Default color for the thumb
+	"& .MuiSlider-track": {
+		background: "linear-gradient(45deg, rgba(255,64,129,1) 0%, rgba(255,105,135,1) 100%)", // Gradient for the track
+		border: "none",
+	},
+	"& .MuiSlider-rail": {
+		opacity: 0.5,
+		backgroundColor: "#bfbfbf",
+	},
+	"& .MuiSlider-thumb": {
+		backgroundColor: "#ffffff",
+		border: "2px solid currentColor",
+		"&:focus, &:hover, &$active": {
+			boxShadow: "inherit",
+		},
+	},
+});
 
 const SearchPage: React.FC = () => {
 	const [searchQuery, setSearchQuery] = useState<string>("");
@@ -117,38 +162,51 @@ const SearchPage: React.FC = () => {
 	}, []);
 
 	return (
-		<Container
-			sx={{
-				pt: 4,
-				pb: 6,
-				color: "text.primary",
-				minHeight: "100vh",
-				display: "flex",
-				flexDirection: "column",
-				alignItems: "center",
-				backgroundColor: "#f5f5f5",
-			}}
-		>
+		<>
 			<Toaster position='top-right' reverseOrder={false} />
 
 			{/* Search Section */}
-			<Box sx={{ mb: 4, width: "100%" }}>
+			<Box
+				sx={{
+					mb: 4,
+					width: "100%",
+					maxWidth: "900px",
+					padding: 2,
+					borderRadius: 2,
+					boxShadow: 3,
+					backgroundColor: "white",
+				}}
+			>
 				<Typography variant='h6' align='center' sx={{ mb: 2, fontWeight: "medium", color: "text.secondary" }}>
 					Search Users
 				</Typography>
 
 				{/* Search Input */}
-				<Box sx={{ display: "flex", justifyContent: "center", gap: 2, mb: 3 }}>
-					<TextField
+				<Box sx={{ mb: 2 }}>
+					<StyledTextField
 						label='Search by name or surname'
 						variant='outlined'
+						fullWidth
 						value={searchQuery}
 						onChange={handleSearchChange}
-						sx={{ width: "300px" }}
 					/>
-					<Box sx={{ width: 300, px: 2 }}>
-						<Typography gutterBottom>Age Range</Typography>
-						<Slider
+				</Box>
+
+				{/* Filters Section */}
+				<Box
+					sx={{
+						display: "flex",
+						justifyContent: "space-between",
+						alignItems: "center",
+						gap: 2,
+						flexWrap: "wrap",
+					}}
+				>
+					<Box sx={{ flex: 1, textAlign: "center" }}>
+						<Typography gutterBottom>
+							Age Range: {ageRange[0]} - {ageRange[1]}
+						</Typography>
+						<GradientSlider
 							value={ageRange}
 							onChange={handleAgeRangeChange}
 							valueLabelDisplay='auto'
@@ -161,22 +219,62 @@ const SearchPage: React.FC = () => {
 							]}
 						/>
 					</Box>
-					<FormControl sx={{ minWidth: 120 }}>
-						<InputLabel>Gender</InputLabel>
-						<Select value={genderFilter} onChange={handleGenderFilterChange}>
-							<MenuItem value=''>Any</MenuItem>
-							<MenuItem value={Gender.Male}>Male</MenuItem>
-							<MenuItem value={Gender.Female}>Female</MenuItem>
+					<FormControl sx={{ flex: 1, minWidth: 150 }} variant='outlined'>
+						<InputLabel id='gender-filter' shrink>
+							Gender
+						</InputLabel>
+						<Select
+							value={genderFilter}
+							onChange={handleGenderFilterChange}
+							displayEmpty
+							notched
+							id='gender-filter'
+							label='Gender'
+						>
+							<MenuItem value=''>
+								<em>Any</em>
+							</MenuItem>
+							<MenuItem value={Gender.Male}>
+								<MaleIcon sx={{ marginRight: 1 }} /> Male
+							</MenuItem>
+							<MenuItem value={Gender.Female}>
+								<FemaleIcon sx={{ marginRight: 1 }} /> Female
+							</MenuItem>
 						</Select>
 					</FormControl>
-					<Button variant='contained' color='primary' onClick={() => handleSearch(true)} disabled={loading}>
+					<Button
+						variant='contained'
+						sx={{
+							background: "linear-gradient(45deg, rgba(255,64,129,1) 0%, rgba(255,105,135,1) 100%)",
+							color: "white",
+							minWidth: "100px",
+							"&:hover": {
+								background: "linear-gradient(45deg, rgba(255,105,135,1) 0%, rgba(255,64,129,1) 100%)",
+							},
+						}}
+						onClick={() => handleSearch(true)}
+						disabled={loading}
+					>
 						{loading ? "Searching..." : "Search"}
 					</Button>
 				</Box>
 			</Box>
 
+			{/* Divider between sections */}
+			<Divider sx={{ width: "100%", maxWidth: "900px", mb: 4 }} />
+
 			{/* Search Results Section */}
-			<Box sx={{ width: "100%" }}>
+			<Box
+				sx={{
+					width: "100%",
+					maxWidth: "900px",
+					textAlign: "center",
+					backgroundColor: "white",
+					borderRadius: 2,
+					boxShadow: 1,
+					p: 2,
+				}}
+			>
 				<Typography variant='h6' align='center' sx={{ mb: 2, fontWeight: "medium", color: "text.secondary" }}>
 					Search Results
 				</Typography>
@@ -193,11 +291,40 @@ const SearchPage: React.FC = () => {
 					<>
 						<Grid container spacing={2}>
 							{searchResults.map((user) => (
-								<Grid item xs={12} sm={8} md={6} key={user.uid}>
-									<Card sx={{ boxShadow: 2, borderRadius: 2 }}>
-										<CardContent>
-											<Typography variant='h6'>
+								<Grid item xs={12} sm={6} md={4} key={user.uid}>
+									<Card
+										sx={{
+											boxShadow: 3,
+											borderRadius: 2,
+											transition: "transform 0.2s",
+											"&:hover": {
+												transform: "scale(1.02)",
+											},
+											height: "100%", // Ensure all cards have the same height
+											display: "flex",
+											flexDirection: "column",
+											justifyContent: "space-between",
+											alignItems: "center",
+											p: 2,
+										}}
+									>
+										<CardContent
+											sx={{
+												display: "flex",
+												flexDirection: "column",
+												alignItems: "center",
+											}}
+										>
+											<Avatar
+												src={user.profilePictureUrl || "/default-profile.png"}
+												alt={user.username}
+												sx={{ width: 80, height: 80, mb: 2 }}
+											/>
+											<Typography variant='h6' sx={{ fontWeight: "bold" }}>
 												{user.firstName} {user.lastName}
+											</Typography>
+											<Typography variant='body2' color='text.secondary'>
+												Username: {user.username}
 											</Typography>
 											<Typography variant='body2' color='text.secondary'>
 												Age: {calculateAge(user.dateOfBirth as Date)}
@@ -206,6 +333,34 @@ const SearchPage: React.FC = () => {
 												Gender: {user.gender || "N/A"}
 											</Typography>
 										</CardContent>
+										<Box sx={{ display: "flex", justifyContent: "center", gap: 1, mt: 2 }}>
+											<IconButton
+												color="primary"
+												aria-label="add friend"
+												sx={{
+													backgroundColor: "#FF4081",
+													color: "white",
+													"&:hover": {
+														backgroundColor: "#FF1053",
+													},
+												}}
+											>
+												<PersonAddIcon />
+											</IconButton>
+											<IconButton
+												color="primary"
+												aria-label="view profile"
+												sx={{
+													backgroundColor: "#FF4081",
+													color: "white",
+													"&:hover": {
+														backgroundColor: "#FF1053",
+													},
+												}}
+											>
+												<VisibilityIcon />
+											</IconButton>
+										</Box>
 									</Card>
 								</Grid>
 							))}
@@ -213,8 +368,21 @@ const SearchPage: React.FC = () => {
 
 						{/* Load More Button */}
 						{hasMore && (
-							<Box sx={{ display: "flex", justifyContent: "center", mt: 2 }}>
-								<Button variant='contained' color='primary' onClick={handleLoadMore} disabled={loading}>
+							<Box sx={{ display: "flex", justifyContent: "center", mt: 3 }}>
+								<Button
+									variant='contained'
+									sx={{
+										background:
+											"linear-gradient(45deg, rgba(255,64,129,1) 0%, rgba(255,105,135,1) 100%)",
+										color: "white",
+										"&:hover": {
+											background:
+												"linear-gradient(45deg, rgba(255,105,135,1) 0%, rgba(255,64,129,1) 100%)",
+										},
+									}}
+									onClick={handleLoadMore}
+									disabled={loading}
+								>
 									{loading ? "Loading..." : "Load More"}
 								</Button>
 							</Box>
@@ -236,7 +404,7 @@ const SearchPage: React.FC = () => {
 					</Typography>
 				)}
 			</Box>
-		</Container>
+		</>
 	);
 };
 

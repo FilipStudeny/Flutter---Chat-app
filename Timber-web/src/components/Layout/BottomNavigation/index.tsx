@@ -1,4 +1,4 @@
-import { Home, Person, Group, Settings, Chat, Notifications, People } from "@mui/icons-material";
+import { Home, Person, Settings, Chat, Notifications, Search } from "@mui/icons-material";
 import { BottomNavigation, BottomNavigationAction, Paper } from "@mui/material";
 import React from "react";
 import { useNavigate } from "react-router-dom";
@@ -21,7 +21,7 @@ const BottomNav: React.FC = () => {
 				navigate(AppRoutes.Profile.replace(":id", currentUser?.uid as string));
 				break;
 			case 2:
-				navigate(AppRoutes.UserFriends.replace(":id", currentUser?.uid as string));
+				navigate(AppRoutes.Search);
 				break;
 			case 3:
 				navigate(AppRoutes.Chats);
@@ -47,36 +47,35 @@ const BottomNav: React.FC = () => {
 				bottom: 0,
 				left: 0,
 				right: 0,
-				zIndex: 1300, // Ensures it is above other content
+				zIndex: 1300,
 			}}
 			elevation={3}
 		>
 			<BottomNavigation
 				value={value}
 				onChange={handleNavigationChange}
-				showLabels // Adds labels to the buttons
+				showLabels
 				sx={{
 					backgroundColor: "#fff",
 					"& .Mui-selected, & .Mui-selected .MuiBottomNavigationAction-label": {
-						color: "#ff4081", // Color for the selected icon and label
+						color: "#ff4081",
 					},
 					"& .MuiBottomNavigationAction-root": {
-						color: "grey", // Default color for the buttons
+						color: "grey",
 					},
 					"& .MuiBottomNavigationAction-root.Mui-selected": {
-						backgroundColor: "#f0f0f0", // Background color for the selected item
-						borderRadius: "8px", // Adds a slight border radius to the selected item
-						color: "#ff4081", // Ensures the icon color is consistent with the selected state
+						backgroundColor: "#f0f0f0",
+						borderRadius: "8px",
+						color: "#ff4081",
 					},
 					"& .MuiBottomNavigationAction-root:hover": {
-						color: "#ff4081", // Hover color for icons and labels
+						color: "#ff4081",
 					},
 				}}
 			>
 				<BottomNavigationAction label='Home' icon={<Home />} />
 				<BottomNavigationAction label='Profile' icon={<Person />} />
-				<BottomNavigationAction label='Friends' icon={<People />} />
-				<BottomNavigationAction label='Matches' icon={<Group />} />
+				<BottomNavigationAction label='Search' icon={<Search />} />
 				<BottomNavigationAction label='Messages' icon={<Chat />} />
 				<BottomNavigationAction label='Notifications' icon={<Notifications />} />
 				<BottomNavigationAction label='Settings' icon={<Settings />} />

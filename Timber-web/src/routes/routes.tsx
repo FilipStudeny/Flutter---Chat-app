@@ -5,6 +5,7 @@ import PublicRoute from "./PublicRoute";
 import ForgotPasswordPage from "./forgotton-password";
 import HomePage from "./home";
 import UserProfilePage from "./profile/[id]";
+import SearchPage from "./search";
 import LoginPage from "./sign-in";
 import RegisterPage from "./sign-up";
 import WelcomePage from "./welcome";
@@ -29,6 +30,7 @@ const routes = createBrowserRouter([
 				children: [
 					{ path: AppRoutes.Home, element: <HomePage /> },
 					{ path: AppRoutes.Profile, element: <UserProfilePage /> },
+					{ path: AppRoutes.Search, element: <SearchPage /> },
 				],
 			},
 		],

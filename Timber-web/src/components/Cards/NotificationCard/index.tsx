@@ -3,12 +3,12 @@ import NotificationsIcon from "@mui/icons-material/Notifications";
 import PersonAddIcon from "@mui/icons-material/PersonAdd";
 import { Card, IconButton, Box, Typography, Button } from "@mui/material";
 import React from "react";
-import toast from "react-hot-toast"; // Import toast for notifications
+import toast from "react-hot-toast";
 
 import NotificationType from "../../../constants/Enums/NotificationType";
 import UserNotification from "../../../constants/Models/UserNotification";
-import { useAuth } from "../../../context/AuthenticationContext"; // Import useAuth to get current user
-import addFriend from "../../../services/DatabaseService/addFriend"; // Import addFriend function
+import { useAuth } from "../../../context/AuthenticationContext";
+import addFriend from "../../../services/DatabaseService/addFriend";
 import deleteNotification from "../../../services/NotificationsService/deleteNotification";
 
 interface NotificationCardProps {
@@ -16,7 +16,7 @@ interface NotificationCardProps {
 }
 
 const NotificationCard: React.FC<NotificationCardProps> = ({ notification }) => {
-	const { currentUser } = useAuth(); // Get current user from context
+	const { currentUser } = useAuth();
 
 	const renderNotificationIcon = (type: NotificationType) => {
 		switch (type) {
@@ -30,7 +30,7 @@ const NotificationCard: React.FC<NotificationCardProps> = ({ notification }) => 
 		}
 	};
 
-	const handleDeclineFriendRequest = async (notificationId: string) => {
+	const handleDeclineFriendRequest = async (notificationId: string, fromAccept: boolean = false) => {
 		if (!currentUser) {
 			toast.error("User not authenticated.");
 			return;
@@ -38,7 +38,7 @@ const NotificationCard: React.FC<NotificationCardProps> = ({ notification }) => 
 
 		try {
 			const response = await deleteNotification(currentUser.uid, notificationId);
-			if (response.success) {
+			if (response.success && fromAccept === false) {
 				toast.success("Notification deleted successfully.");
 			} else {
 				toast.error(response.message || "Failed to delete notification.");
@@ -54,8 +54,7 @@ const NotificationCard: React.FC<NotificationCardProps> = ({ notification }) => 
 				const response = await addFriend(currentUser.uid, notification.senderId);
 				if (response.success) {
 					toast.success("Friend request accepted!");
-					// Optionally remove the notification after accepting the friend request
-					await handleDeclineFriendRequest(notification.id);
+					await handleDeclineFriendRequest(notification.id, true);
 				} else {
 					toast.error(response.message || "Failed to accept friend request.");
 				}
@@ -68,23 +67,32 @@ const NotificationCard: React.FC<NotificationCardProps> = ({ notification }) => 
 	return (
 		<Card
 			sx={{
-				mb: 3,
+				mb: 2,
 				p: 2,
 				display: "flex",
 				flexDirection: "column",
 				alignItems: "center",
-				maxWidth: "300px",
+				maxWidth: "260px",
 				mx: "auto",
-				backgroundColor: "#f9f9f9",
-				boxShadow: 2,
-				borderRadius: "12px",
+				backgroundColor: "#ffffff",
+				boxShadow: "0 8px 30px rgba(0, 0, 0, 0.1)",
+				borderRadius: "15px",
 				textAlign: "center",
+				position: "relative",
+				overflow: "hidden",
+				transition: "transform 0.3s ease, box-shadow 0.3s ease",
+				"&:hover": {
+					transform: "translateY(-8px)",
+					boxShadow: "0 12px 35px rgba(0, 0, 0, 0.15)",
+				},
 			}}
 		>
-			<Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
-				<IconButton sx={{ mr: 2 }}>{renderNotificationIcon(notification.type as NotificationType)}</IconButton>
+			<Box sx={{ display: "flex", alignItems: "center", mb: 1.5 }}>
+				<IconButton sx={{ mr: 1.5, color: "#ff4081" }}>
+					{renderNotificationIcon(notification.type as NotificationType)}
+				</IconButton>
 				<Box>
-					<Typography variant='body2' sx={{ fontWeight: "bold" }}>
+					<Typography variant='body2' sx={{ fontWeight: "bold", color: "#333" }}>
 						{notification.message}
 					</Typography>
 					<Typography variant='caption' color='textSecondary'>
@@ -100,11 +108,16 @@ const NotificationCard: React.FC<NotificationCardProps> = ({ notification }) => 
 						size='small'
 						onClick={handleAccept}
 						sx={{
-							background: "linear-gradient(45deg, rgba(255,64,129,1) 0%, rgba(255,105,135,1) 100%)",
+							backgroundColor: "#ff4081",
 							color: "#fff",
+							borderRadius: "20px",
+							padding: "4px 16px",
+							boxShadow: "0 4px 10px rgba(255, 64, 129, 0.2)",
+							textTransform: "none",
+							transition: "background-color 0.3s ease, box-shadow 0.3s ease",
 							"&:hover": {
-								background:
-									"linear-gradient(45deg, rgba(255,64,129,0.85) 0%, rgba(255,105,135,0.85) 100%)",
+								backgroundColor: "#ff79b0",
+								boxShadow: "0 6px 15px rgba(255, 64, 129, 0.25)",
 							},
 						}}
 					>
@@ -115,13 +128,16 @@ const NotificationCard: React.FC<NotificationCardProps> = ({ notification }) => 
 						size='small'
 						onClick={() => handleDeclineFriendRequest(notification.id)}
 						sx={{
-							background: "linear-gradient(45deg, rgba(255,64,129,1) 0%, rgba(255,105,135,1) 100%)",
-							color: "#fff",
-							borderColor: "transparent",
+							borderColor: "#ff4081",
+							color: "#ff4081",
+							borderRadius: "20px",
+							padding: "4px 16px",
+							textTransform: "none",
+							transition: "border-color 0.3s ease, color 0.3s ease",
 							"&:hover": {
-								background:
-									"linear-gradient(45deg, rgba(255,64,129,0.85) 0%, rgba(255,105,135,0.85) 100%)",
-								borderColor: "transparent",
+								borderColor: "#ff79b0",
+								color: "#ff79b0",
+								backgroundColor: "rgba(255, 64, 129, 0.08)",
 							},
 						}}
 					>

@@ -77,7 +77,7 @@ const HomePage: React.FC = () => {
 				</Typography>
 				<Divider sx={{ mb: 4 }} />
 
-				<Grid container spacing={2} justifyContent='center'>
+				<Grid container spacing={2} justifyContent='flex-start'>
 					{notifications.slice(0, 6).map((notification) => (
 						<Grid item xs={12} sm={6} md={4} key={notification.id}>
 							<NotificationCard notification={notification} />

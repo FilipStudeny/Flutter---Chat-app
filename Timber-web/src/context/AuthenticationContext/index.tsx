@@ -14,7 +14,7 @@ import { createContext, ReactNode, FC, useContext, useState, useEffect, useMemo 
 import getFirabaseAuthErrorMessage from "../../constants/Errors/firebase-auth-errors";
 import { UserDataModel } from "../../constants/Models/UserDataModel";
 import { FirebaseAuth } from "../../firebase";
-import { createUser } from "../../services/DatabaseService/createUser";
+import createUser from "../../services/DatabaseService/createUser";
 import getUser from "../../services/DatabaseService/getUser";
 import { uploadFile } from "../../services/FileStorageService/uploadFile";
 

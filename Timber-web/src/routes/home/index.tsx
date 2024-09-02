@@ -3,7 +3,6 @@ import React, { useEffect, useState } from "react";
 import { Toaster } from "react-hot-toast";
 
 import NotificationCard from "../../components/Cards/NotificationCard";
-import FriendsList from "../../components/Lists/FriendList";
 // Updated import for the new NotificationsList component
 import { UserDataModel } from "../../constants/Models/UserDataModel";
 import UserNotification from "../../constants/Models/UserNotification";
@@ -126,7 +125,7 @@ const HomePage: React.FC = () => {
 					</Card>
 				) : (
 					<Box>
-						<FriendsList friendsList={friends} hideTitle />
+									{/* <FriendsList friendsList={friendsList} */}
 					</Box>
 				)}
 			</Box>

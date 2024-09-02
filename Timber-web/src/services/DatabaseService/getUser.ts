@@ -28,7 +28,6 @@ const getUser = async (userId: string): Promise<ServiceResponse<UserDataModel>> 
 			dateOfBirth: data?.dateOfBirth ? new Date(data.dateOfBirth.seconds * 1000) : undefined,
 		};
 
-
 		return { success: true, data: user };
 	} catch (err) {
 		const errorMessage = err instanceof Error ? err.message : "An unknown error occurred";

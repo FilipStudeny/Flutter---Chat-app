@@ -32,7 +32,6 @@ import toast, { Toaster } from "react-hot-toast";
 import { useParams } from "react-router-dom";
 
 import PhotosSection from "./components/PhotoSection";
-import FriendsList from "../../../components/Lists/FriendList";
 import NotificationType from "../../../constants/Enums/NotificationType";
 import { calculateAge, UserDataModel } from "../../../constants/Models/UserDataModel";
 import { useAuth } from "../../../context/AuthenticationContext";
@@ -584,7 +583,7 @@ const UserProfilePage: React.FC = () => {
 					{/* Friends List Section */}
 					<Box sx={{ mb: 6, width: "100%" }}>
 						<Box>
-							<FriendsList friendsList={friendsList} />
+							{/* <FriendsList friendsList={friendsList} */ }
 						</Box>
 					</Box>
 				</Box>

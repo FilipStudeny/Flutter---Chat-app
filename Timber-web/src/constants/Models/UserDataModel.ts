@@ -12,7 +12,6 @@ export interface UserDataModel {
 	lastName?: string;
 	phoneNumber?: string | null;
 	aboutMe?: string;
-	onlineStatus?: boolean | null;
 }
 
 export const calculateAge = (dateOfBirth: Date | undefined): number | undefined => {

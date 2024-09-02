@@ -6,13 +6,15 @@ import { UserDataModel } from "../../constants/Models/UserDataModel";
 import { useAuth } from "../../context/AuthenticationContext";
 import getAllUsers from "../../services/DatabaseService/getAllUsers";
 
-interface UseGetAllUsersSearchProps {
+interface UseGetUsersProps {
 	ageRange: number[];
 	genderFilter: Gender | "";
 	searchQuery: string;
+	userId?: string;
+	getFriends?: boolean;
 }
 
-interface UseGetAllUsersSearch {
+interface UseGetUsers {
 	loading: boolean;
 	error: string | null;
 	searchResults: UserDataModel[];
@@ -21,11 +23,7 @@ interface UseGetAllUsersSearch {
 	fetchUsers: (reset?: boolean) => Promise<void>;
 }
 
-const useGetAllUsersSearch = ({
-	ageRange,
-	genderFilter,
-	searchQuery,
-}: UseGetAllUsersSearchProps): UseGetAllUsersSearch => {
+const useGetUsers = ({ ageRange, genderFilter, searchQuery, getFriends, userId }: UseGetUsersProps): UseGetUsers => {
 	const [searchResults, setSearchResults] = useState<UserDataModel[]>([]);
 	const [loading, setLoading] = useState<boolean>(false);
 	const [error, setError] = useState<string | null>(null);
@@ -59,6 +57,8 @@ const useGetAllUsersSearch = ({
 				minAge,
 				maxAge,
 				username: searchQuery.trim(),
+				userId,
+				getFriends,
 			});
 
 			if (response.success) {
@@ -100,4 +100,4 @@ const useGetAllUsersSearch = ({
 	};
 };
 
-export default useGetAllUsersSearch;
+export default useGetUsers;

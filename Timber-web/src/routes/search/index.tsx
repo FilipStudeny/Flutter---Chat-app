@@ -2,9 +2,9 @@
 import React, { useEffect, useState } from "react";
 import { Toaster } from "react-hot-toast";
 
-import UserList from "../../components/Lists/UsersList"; // Adjusted import path
+import UserList from "../../components/Lists/UsersList";
 import { Gender } from "../../constants/Enums/Gender";
-import { useGetAllUsersSearch } from "../../hooks";
+import { useGetUsers } from "../../hooks";
 
 const SearchPage: React.FC = () => {
 	const [searchQuery, setSearchQuery] = useState<string>("");
@@ -12,7 +12,7 @@ const SearchPage: React.FC = () => {
 	const [genderFilter, setGenderFilter] = useState<Gender | "">("");
 	const [ageDialogOpen, setAgeDialogOpen] = useState<boolean>(false);
 
-	const { loading, error, searchResults, hasMore, noResultsFound, fetchUsers } = useGetAllUsersSearch({
+	const { loading, error, searchResults, hasMore, noResultsFound, fetchUsers } = useGetUsers({
 		ageRange,
 		genderFilter,
 		searchQuery,
@@ -26,13 +26,11 @@ const SearchPage: React.FC = () => {
 		setAgeDialogOpen(false);
 	};
 
-	// Function to handle fetching more users
 	const handleLoadMore = () => {
 		fetchUsers(false);
 	};
 
 	useEffect(() => {
-		// Fetch users on component mount
 		fetchUsers(true);
 	}, []);
 

@@ -32,6 +32,7 @@ import toast, { Toaster } from "react-hot-toast";
 import { useParams } from "react-router-dom";
 
 import PhotosSection from "./components/PhotoSection";
+import UserList from "../../../components/Lists/UsersList";
 import NotificationType from "../../../constants/Enums/NotificationType";
 import { calculateAge, UserDataModel } from "../../../constants/Models/UserDataModel";
 import { useAuth } from "../../../context/AuthenticationContext";
@@ -43,6 +44,7 @@ import updateProfilePicture from "../../../services/DatabaseService/updateProfil
 import getUserPhotos from "../../../services/FileStorageService/getUserPhotos";
 import { FileMetadata, uploadFile } from "../../../services/FileStorageService/uploadFile";
 import createNotification from "../../../services/NotificationsService/createNotification";
+import { useUsersListFetch } from "../../../hooks";
 
 const UserProfilePage: React.FC = () => {
 	const { id } = useParams<{ id: string }>();
@@ -61,6 +63,25 @@ const UserProfilePage: React.FC = () => {
 	const [updatedUserData, setUpdatedUserData] = useState<UserDataModel | null>(null);
 	const [friendsList, setFriendsList] = useState<UserDataModel[]>([]);
 	const [confirmRemoveFriendOpen, setConfirmRemoveFriendOpen] = useState<boolean>(false);
+
+	const {
+		searchQuery,
+		setSearchQuery,
+		ageRange,
+		setAgeRange,
+		genderFilter,
+		setGenderFilter,
+		ageDialogOpen,
+		handleOpenAgeDialog,
+		handleCloseAgeDialog,
+		loading,
+		error,
+		searchResults,
+		hasMore,
+		noResultsFound,
+		handleLoadMore,
+		fetchUsers,
+	} = useUsersListFetch();
 
 	useEffect(() => {
 		const fetchUserData = async () => {
@@ -582,9 +603,24 @@ const UserProfilePage: React.FC = () => {
 
 					{/* Friends List Section */}
 					<Box sx={{ mb: 6, width: "100%" }}>
-						<Box>
-							{/* <FriendsList friendsList={friendsList} */ }
-						</Box>
+						<UserList
+							loading={loading}
+							error={error}
+							searchResults={searchResults}
+							hasMore={hasMore}
+							noResultsFound={noResultsFound}
+							handleLoadMore={handleLoadMore}
+							searchQuery={searchQuery}
+							setSearchQuery={setSearchQuery}
+							ageRange={ageRange}
+							setAgeRange={setAgeRange}
+							genderFilter={genderFilter}
+							setGenderFilter={setGenderFilter}
+							fetchUsers={fetchUsers}
+							ageDialogOpen={ageDialogOpen}
+							handleOpenAgeDialog={handleOpenAgeDialog}
+							handleCloseAgeDialog={handleCloseAgeDialog}
+						/>
 					</Box>
 				</Box>
 

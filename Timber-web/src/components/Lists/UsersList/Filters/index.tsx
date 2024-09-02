@@ -79,7 +79,7 @@ const SearchFilters: React.FC<SearchFiltersProps> = ({
 
 				{/* Age Range Display with Edit Icon */}
 				<Box
-					sx={{ display: "flex", alignItems: "center", flex: 1, cursor: "pointer" }}
+					sx={{ display: "flex", alignItems: "center", flex: 1, cursor: "pointer", minWidth: "140px" }}
 					onClick={handleOpenAgeDialog}
 				>
 					<Typography variant='body1' sx={{ mr: 1, color: "#333", fontWeight: "bold", display: "inline" }}>
@@ -123,32 +123,39 @@ const SearchFilters: React.FC<SearchFiltersProps> = ({
 				maxWidth='sm'
 				fullWidth
 			>
-				<DialogTitle id='age-range-dialog'>
-					Select Age Range:{" "}
-					<Typography
-						variant='body1'
-						sx={{ color: "#FF4081", fontWeight: "bold", display: "inline", fontSize: "20px" }}
-					>
-						{ageRange[0]} - {ageRange[1]}
-					</Typography>
-				</DialogTitle>
+				<DialogTitle id='age-range-dialog'>Select Age Range</DialogTitle>
 				<DialogContent>
-					<GradientSlider
-						value={ageRange}
-						onChange={handleAgeRangeChange}
-						valueLabelDisplay='auto'
-						min={18}
-						max={99}
-						step={1}
-						marks={[
-							{ value: 18, label: "18" },
-							{ value: 99, label: "99" },
-						]}
-						sx={{ marginTop: "50px" }}
-					/>
+					<Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", mt: 2 }}>
+						<Typography
+							variant='h6'
+							sx={{
+								color: "#FF4081",
+								fontWeight: "bold",
+								fontSize: "20px",
+								mb: 2, // Margin bottom to separate it from the slider
+							}}
+						>
+							{ageRange[0]} - {ageRange[1]}
+						</Typography>
+						<GradientSlider
+							value={ageRange}
+							onChange={handleAgeRangeChange}
+							valueLabelDisplay='auto'
+							min={18}
+							max={99}
+							step={1}
+							marks={[
+								{ value: 18, label: "18" },
+								{ value: 99, label: "99" },
+							]}
+							sx={{ width: "80%", mt: 4 }} // Centered with width percentage
+						/>
+					</Box>
 				</DialogContent>
-				<DialogActions>
-					<StyledButton onClick={handleCloseAgeDialog}>Done</StyledButton>
+				<DialogActions sx={{ justifyContent: "center", pb: 2 }}>
+					<StyledButton onClick={handleCloseAgeDialog} sx={{ px: 4 }}>
+						Done
+					</StyledButton>
 				</DialogActions>
 			</Dialog>
 		</>

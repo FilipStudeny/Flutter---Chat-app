@@ -31,7 +31,7 @@ function useUsersListFetch(userId: string | undefined, fetchFriends: boolean = f
 
 	useEffect(() => {
 		fetchUsers(true);
-	}, []);
+	}, [userId]);
 
 	return {
 		searchQuery,

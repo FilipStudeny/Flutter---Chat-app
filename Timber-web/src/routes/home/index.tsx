@@ -4,6 +4,7 @@ import { Toaster } from "react-hot-toast";
 
 import NotificationCard from "../../components/Cards/NotificationCard";
 // Updated import for the new NotificationsList component
+import UserList from "../../components/Lists/UsersList";
 import { UserDataModel } from "../../constants/Models/UserDataModel";
 import UserNotification from "../../constants/Models/UserNotification";
 import { useAuth } from "../../context/AuthenticationContext";
@@ -125,7 +126,7 @@ const HomePage: React.FC = () => {
 					</Card>
 				) : (
 					<Box>
-									{/* <FriendsList friendsList={friendsList} */}
+						<UserList />
 					</Box>
 				)}
 			</Box>

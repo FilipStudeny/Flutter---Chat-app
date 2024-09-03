@@ -11,7 +11,7 @@ interface UseGetUsersProps {
 	genderFilter: Gender | "";
 	searchQuery: string;
 	userId?: string;
-	getFriends?: boolean;
+	fetchFriends?: boolean;
 }
 
 interface UseGetUsers {
@@ -23,7 +23,7 @@ interface UseGetUsers {
 	fetchUsers: (reset?: boolean) => Promise<void>;
 }
 
-const useGetUsers = ({ ageRange, genderFilter, searchQuery, getFriends, userId }: UseGetUsersProps): UseGetUsers => {
+const useGetUsers = ({ ageRange, genderFilter, searchQuery, fetchFriends, userId }: UseGetUsersProps): UseGetUsers => {
 	const [searchResults, setSearchResults] = useState<UserDataModel[]>([]);
 	const [loading, setLoading] = useState<boolean>(false);
 	const [error, setError] = useState<string | null>(null);
@@ -58,7 +58,7 @@ const useGetUsers = ({ ageRange, genderFilter, searchQuery, getFriends, userId }
 				maxAge,
 				username: searchQuery.trim(),
 				userId,
-				getFriends,
+				fetchFriends,
 			});
 
 			if (response.success) {

@@ -27,7 +27,7 @@ const getUsersOrFriends = async ({
 	minAge,
 	maxAge,
 	username,
-	getFriends,
+	fetchFriends,
 	userId,
 }: {
 	limit?: number;
@@ -37,14 +37,14 @@ const getUsersOrFriends = async ({
 	minAge?: number;
 	maxAge?: number;
 	username?: string;
-	getFriends?: boolean;
+	fetchFriends?: boolean;
 	userId?: string;
 } = {}): Promise<ServiceResponse<UserDataModel[]>> => {
 	try {
 		const usersCollection = collection(FirebaseFireStore, "users");
 		let userQuery: Query<DocumentData>;
 
-		if (getFriends && userId) {
+		if (fetchFriends && userId) {
 			// If getting friends, fetch user's friends list
 			const userDoc = await getDoc(doc(FirebaseFireStore, "users", userId));
 

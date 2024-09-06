@@ -131,7 +131,7 @@ const NotificationCard: React.FC<NotificationCardProps> = ({ notification }) => 
 							borderColor: "#ff4081",
 							color: "#ff4081",
 							borderRadius: "20px",
-							padding: "6px 20px", // Similar padding as the accept button
+							padding: "6px 20px",
 							textTransform: "none",
 							fontWeight: "bold",
 							"&:hover": {

@@ -22,12 +22,13 @@ import {
 	DialogContent,
 	DialogContentText,
 	DialogActions,
+	CircularProgress,
 } from "@mui/material";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import dayjs from "dayjs";
-import React, { useEffect, useState, ChangeEvent } from "react";
+import React, { useState, ChangeEvent } from "react";
 import toast, { Toaster } from "react-hot-toast";
 import { useParams } from "react-router-dom";
 
@@ -36,22 +37,27 @@ import UserList from "../../../components/Lists/UsersList";
 import NotificationType from "../../../constants/Enums/NotificationType";
 import { calculateAge, UserDataModel } from "../../../constants/Models/UserDataModel";
 import { useAuth } from "../../../context/AuthenticationContext";
-import getAllFriends from "../../../services/DatabaseService/getAllFriends";
-import getUser from "../../../services/DatabaseService/getUser";
+import useGetUserPhotos from "../../../hooks/useFetchUserPhotos";
+import useGetUser from "../../../hooks/useGetUser";
 import removeFriend from "../../../services/DatabaseService/removeFriend";
 import updateProfile from "../../../services/DatabaseService/updateProfile";
 import updateProfilePicture from "../../../services/DatabaseService/updateProfilePicture";
-import getUserPhotos from "../../../services/FileStorageService/getUserPhotos";
-import { FileMetadata, uploadFile } from "../../../services/FileStorageService/uploadFile";
+import { uploadFile } from "../../../services/FileStorageService/uploadFile";
 import createNotification from "../../../services/NotificationsService/createNotification";
 
 const UserProfilePage: React.FC = () => {
 	const { id } = useParams<{ id: string }>();
 	const { currentUser, userData, setUserData } = useAuth();
 
-	const [user, setUser] = useState<UserDataModel | null>(null);
-	const [uploadedPictures, setUploadedPictures] = useState<FileMetadata[]>([]);
-	const [selectedPicturesForDeletion, setSelectedPicturesForDeletion] = useState<string[]>([]);
+	// Custom hooks to fetch user, photos, and friends
+	const { user, loading: userLoading, error: userError, fetchUser } = useGetUser({ userId: id as string });
+	const {
+		photos: uploadedPictures,
+		loading: photosLoading,
+		error: photosError,
+		fetchPhotos,
+	} = useGetUserPhotos({ userId: id as string });
+
 	const [newProfilePicture, setNewProfilePicture] = useState<File | null>(null);
 	const [newPhotoFile, setNewPhotoFile] = useState<File | null>(null);
 	const [openPhotoSelectionModal, setOpenPhotoSelectionModal] = useState(false);
@@ -60,47 +66,14 @@ const UserProfilePage: React.FC = () => {
 	const [editModalOpen, setEditModalOpen] = useState(false);
 	const [selectedUploadedPicture, setSelectedUploadedPicture] = useState<string | null>(null);
 	const [updatedUserData, setUpdatedUserData] = useState<UserDataModel | null>(null);
-	const [friendsList, setFriendsList] = useState<UserDataModel[]>([]);
 	const [confirmRemoveFriendOpen, setConfirmRemoveFriendOpen] = useState<boolean>(false);
+	const [selectedPicturesForDeletion, setSelectedPicturesForDeletion] = useState<string[]>([]);
 
-	useEffect(() => {
-		const fetchUserData = async () => {
-			if (id) {
-				try {
-					const userResponse = await getUser(id);
-					const photosResponse = await getUserPhotos(id);
-					const friendsResponse = await getAllFriends({ userId: id });
-					if (userResponse.success && userResponse.data) {
-						setUser(userResponse.data);
-						setUpdatedUserData({
-							firstName: userResponse.data.firstName || "",
-							lastName: userResponse.data.lastName || "",
-							email: userResponse.data.email || "",
-							profilePictureUrl: userResponse.data.profilePictureUrl || "",
-							phoneNumber: userResponse.data.phoneNumber || "",
-							aboutMe: userResponse.data.aboutMe || "",
-						});
-					} else {
-						throw new Error(userResponse.message || "Failed to load user data.");
-					}
-
-					if (friendsResponse.success && friendsResponse.data) {
-						setFriendsList(friendsResponse.data);
-					} else {
-						throw new Error(friendsResponse.message || "Failed to load friends.");
-					}
-					if (photosResponse.success && photosResponse.data) {
-						setUploadedPictures(photosResponse.data);
-					} else {
-						throw new Error(photosResponse.message || "Failed to load user photos.");
-					}
-				} catch (err) {
-					toast.error(err instanceof Error ? err.message : "Unknown error occurred");
-				}
-			}
-		};
-		fetchUserData();
-	}, [id]);
+	// Reuse `fetchUser` to reload the user data
+	const reloadUserData = async () => {
+		await fetchUser();
+		await fetchPhotos();
+	};
 
 	const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
 		const { name, value } = event.target;
@@ -115,14 +88,12 @@ const UserProfilePage: React.FC = () => {
 			updatedUserData.gender = user?.gender;
 			const response = await updateProfile(user?.uid as string, updatedUserData as UserDataModel);
 			if (response.success) {
-				setUser({ ...user, ...updatedUserData });
-				setEditModalOpen(false);
 				toast.success("Profile updated successfully.");
+				setEditModalOpen(false);
+				reloadUserData();
 			} else {
 				toast.error(response.message || "Failed to update profile.");
 			}
-		} else {
-			toast.error("No updated user data available.");
 		}
 	};
 
@@ -130,19 +101,6 @@ const UserProfilePage: React.FC = () => {
 		if (event.target.files && event.target.files[0]) {
 			setNewProfilePicture(event.target.files[0]);
 			setSelectedUploadedPicture(null);
-		}
-	};
-
-	const reloadUserData = async () => {
-		if (id) {
-			try {
-				const photosResponse = await getUserPhotos(id);
-				if (photosResponse.success && photosResponse.data) {
-					setUploadedPictures(photosResponse.data);
-				}
-			} catch (error) {
-				toast.error("Failed to reload user data.");
-			}
 		}
 	};
 
@@ -157,12 +115,8 @@ const UserProfilePage: React.FC = () => {
 				const updateResponse = await updateProfilePicture(currentUser?.uid as string, url as string);
 
 				if (updateResponse.success) {
-					setUpdatedUserData((prevState) => ({
-						...prevState,
-						profilePictureUrl: url as string,
-					}));
-					setOpenPhotoSelectionModal(false);
 					toast.success("Profile picture updated successfully.");
+					setOpenPhotoSelectionModal(false);
 					reloadUserData();
 				} else {
 					toast.error(updateResponse.message || "Failed to update profile picture.");
@@ -189,6 +143,10 @@ const UserProfilePage: React.FC = () => {
 			}
 		}
 	};
+
+	if (userError || photosError) {
+		return <Typography color='error'>Error loading data: {userError || photosError}</Typography>;
+	}
 
 	const handleSelectUploadedPicture = (url: string) => {
 		setSelectedUploadedPicture(url);
@@ -251,7 +209,6 @@ const UserProfilePage: React.FC = () => {
 					const response = await removeFriend(currentUser.uid, user.uid);
 					if (response.success) {
 						toast.success("Friend removed successfully.");
-						setFriendsList(friendsList.filter((friend) => friend.uid !== user.uid));
 					} else {
 						toast.error(response.message || "Failed to remove friend.");
 					}
@@ -289,8 +246,6 @@ const UserProfilePage: React.FC = () => {
 				const response = await removeFriend(currentUser.uid, user.uid);
 				if (response.success) {
 					toast.success("Friend removed successfully.");
-
-					setFriendsList((prevFriendsList) => prevFriendsList.filter((friend) => friend.uid !== user.uid));
 
 					if (userData) {
 						const updatedFriends = userData.friends?.filter((friendId) => friendId !== user.uid) || [];
@@ -424,7 +379,6 @@ const UserProfilePage: React.FC = () => {
 							</Button>
 
 							{/* Modal for confirming friend removal */}
-							{/* Modal for confirming friend removal */}
 							<Dialog
 								open={confirmRemoveFriendOpen}
 								onClose={handleCloseRemoveFriendModal}
@@ -523,62 +477,75 @@ const UserProfilePage: React.FC = () => {
 						</Box>
 					)}
 
-					{/* User Information Section */}
+					{/* User Information and About Me Sections with userLoading spinner */}
 					<Paper elevation={3} sx={{ p: 3, width: "100%", borderRadius: 4, boxShadow: 3 }}>
-						<Box display='flex' justifyContent='space-between' alignItems='center' mb={2}>
-							<Typography variant='h6' fontWeight='bold'>
-								User Info
-							</Typography>
-							{isCurrentUserProfile && (
-								<IconButton onClick={() => setEditModalOpen(true)} size='large'>
-									<EditIcon />
-								</IconButton>
-							)}
-						</Box>
-						<Box>
-							<Typography variant='body1' color='textSecondary'>
-								<strong>Name:</strong> {user?.firstName} {user?.lastName}
-							</Typography>
-							<Typography variant='body1' color='textSecondary'>
-								<strong>Email:</strong> {user?.email}
-							</Typography>
-							<Typography variant='body1' color='textSecondary'>
-								<strong>Phone:</strong> {user?.phoneNumber || "N/A"}
-							</Typography>
-							<Typography variant='body1' color='textSecondary'>
-								<strong>Gender:</strong> {user?.gender}
-							</Typography>
-							<Typography variant='body1' color='textSecondary'>
-								<strong>Date of Birth:</strong>{" "}
-								{user?.dateOfBirth ? user.dateOfBirth.toLocaleDateString() : "N/A"}
-							</Typography>
-						</Box>
+						{userLoading ? (
+							<Box display='flex' justifyContent='center' alignItems='center' minHeight='30vh'>
+								<CircularProgress />
+							</Box>
+						) : (
+							<>
+								{/* User Information Section */}
+								<Box display='flex' justifyContent='space-between' alignItems='center' mb={2}>
+									<Typography variant='h6' fontWeight='bold'>
+										User Info
+									</Typography>
+									{isCurrentUserProfile && (
+										<IconButton onClick={() => setEditModalOpen(true)} size='large'>
+											<EditIcon />
+										</IconButton>
+									)}
+								</Box>
+								<Box>
+									<Typography variant='body1' color='textSecondary'>
+										<strong>Name:</strong> {user?.firstName} {user?.lastName}
+									</Typography>
+									<Typography variant='body1' color='textSecondary'>
+										<strong>Email:</strong> {user?.email}
+									</Typography>
+									<Typography variant='body1' color='textSecondary'>
+										<strong>Phone:</strong> {user?.phoneNumber || "N/A"}
+									</Typography>
+									<Typography variant='body1' color='textSecondary'>
+										<strong>Gender:</strong> {user?.gender}
+									</Typography>
+									<Typography variant='body1' color='textSecondary'>
+										<strong>Date of Birth:</strong>{" "}
+										{user?.dateOfBirth ? user.dateOfBirth.toLocaleDateString() : "N/A"}
+									</Typography>
+								</Box>
+
+								{/* About Me Section */}
+								<Box display='flex' justifyContent='space-between' alignItems='center' mt={3}>
+									<Typography variant='h6' fontWeight='bold'>
+										About Me
+									</Typography>
+									{isCurrentUserProfile && (
+										<IconButton onClick={() => setEditModalOpen(true)} size='large'>
+											<EditIcon />
+										</IconButton>
+									)}
+								</Box>
+								<Typography variant='body1' mt={2}>
+									{user?.aboutMe || "No information provided."}
+								</Typography>
+							</>
+						)}
 					</Paper>
 
-					{/* About Me Section */}
+					{/* Photos Section with separate photosLoading spinner */}
 					<Paper elevation={3} sx={{ mt: 3, p: 3, width: "100%", borderRadius: 4, boxShadow: 3 }}>
-						<Box display='flex' justifyContent='space-between' alignItems='center'>
-							<Typography variant='h6' fontWeight='bold'>
-								About Me
-							</Typography>
-							{isCurrentUserProfile && (
-								<IconButton onClick={() => setEditModalOpen(true)} size='large'>
-									<EditIcon />
-								</IconButton>
-							)}
-						</Box>
-						<Typography variant='body1' mt={2}>
-							{user?.aboutMe || "No information provided."}
-						</Typography>
-					</Paper>
-
-					{/* Photos Section */}
-					<Paper elevation={3} sx={{ mt: 3, p: 3, width: "100%", borderRadius: 4, boxShadow: 3 }}>
-						<PhotosSection
-							isCurrentUserProfile={isCurrentUserProfile}
-							uploadedPictures={uploadedPictures}
-							reloadUserData={reloadUserData}
-						/>
+						{photosLoading ? (
+							<Box display='flex' justifyContent='center' alignItems='center' minHeight='30vh'>
+								<CircularProgress />
+							</Box>
+						) : (
+							<PhotosSection
+								isCurrentUserProfile={isCurrentUserProfile}
+								uploadedPictures={uploadedPictures}
+								reloadUserData={reloadUserData}
+							/>
+						)}
 					</Paper>
 
 					{/* Friends List Section */}

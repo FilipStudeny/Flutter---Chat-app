@@ -1,5 +1,5 @@
-import { Search, Notifications, Settings, Person } from "@mui/icons-material";
-import { AppBar, Toolbar, IconButton, Typography, Badge, Avatar, InputBase, Box, Button } from "@mui/material";
+import { Search, Settings, Person } from "@mui/icons-material";
+import { AppBar, Toolbar, IconButton, Typography, Avatar, InputBase, Box, Button } from "@mui/material";
 import React from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -15,6 +15,7 @@ import {
 	iconButtonStyles,
 } from "./styles";
 import { useAuth } from "../../../context/AuthenticationContext";
+import NotificationDisplay from "./NotificationsDisplay";
 
 const Header: React.FC = () => {
 	const navigate = useNavigate();
@@ -51,11 +52,7 @@ const Header: React.FC = () => {
 							<IconButton color='inherit' sx={iconButtonStyles}>
 								<Person />
 							</IconButton>
-							<IconButton color='inherit' sx={iconButtonStyles}>
-								<Badge badgeContent={1} color='secondary'>
-									<Notifications />
-								</Badge>
-							</IconButton>
+							<NotificationDisplay userId={currentUser?.uid} />
 						</Box>
 					</>
 				) : (

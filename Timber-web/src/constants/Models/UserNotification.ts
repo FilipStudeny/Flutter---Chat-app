@@ -14,11 +14,11 @@ interface UserNotification {
 
 export default UserNotification;
 export const mapFirestoreDocToUserNotification = (doc: DocumentData): UserNotification => ({
-    senderId: doc.senderId,
-    recipientId: doc.recipientId,
-    message: doc.message,
-    type: doc.type as NotificationType,
-    createdAt: doc.createdAt as Timestamp,
-    id: doc.id,
-    read: doc.read,
+	senderId: doc.senderId,
+	recipientId: doc.recipientId,
+	message: doc.message,
+	type: doc.type as NotificationType,
+	createdAt: doc.createdAt as Timestamp,
+	id: doc.id,
+	read: doc.read,
 });

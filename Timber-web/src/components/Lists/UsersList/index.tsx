@@ -121,7 +121,7 @@ const UserList: React.FC<UserListProps> = ({ separateFilter, fetchFriends, userI
 					</Typography>
 				) : (
 					<>
-						<Grid container spacing={2}>
+						<Grid container spacing={3}>
 							{searchResults.map((user: UserDataModel) => (
 								<Grid item xs={12} sm={6} md={4} key={user.uid}>
 									<UserCard user={user} />

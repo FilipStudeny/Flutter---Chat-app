@@ -72,27 +72,27 @@ const NotificationCard: React.FC<NotificationCardProps> = ({ notification }) => 
 				display: "flex",
 				flexDirection: "column",
 				alignItems: "center",
-				maxWidth: "260px",
+				maxWidth: "300px", // Increased width for better readability
 				mx: "auto",
-				backgroundColor: "#ffffff",
-				boxShadow: "0 8px 30px rgba(0, 0, 0, 0.1)",
-				borderRadius: "15px",
+				backgroundColor: "#fefefe",
+				boxShadow: "0 6px 20px rgba(0, 0, 0, 0.1)", // Softer shadow for modern feel
+				borderRadius: "16px", // Slightly more rounded corners
 				textAlign: "center",
 				position: "relative",
 				overflow: "hidden",
 				transition: "transform 0.3s ease, box-shadow 0.3s ease",
 				"&:hover": {
-					transform: "translateY(-8px)",
-					boxShadow: "0 12px 35px rgba(0, 0, 0, 0.15)",
+					transform: "translateY(-6px)",
+					boxShadow: "0 10px 30px rgba(0, 0, 0, 0.12)",
 				},
 			}}
 		>
-			<Box sx={{ display: "flex", alignItems: "center", mb: 1.5 }}>
-				<IconButton sx={{ mr: 1.5, color: "#ff4081" }}>
+			<Box sx={{ display: "flex", alignItems: "center", mb: 1.5, justifyContent: "center", gap: 1 }}>
+				<IconButton sx={{ color: "#ff4081", backgroundColor: "#ffe6f0", p: 1, borderRadius: "50%" }}>
 					{renderNotificationIcon(notification.type as NotificationType)}
 				</IconButton>
 				<Box>
-					<Typography variant='body2' sx={{ fontWeight: "bold", color: "#333" }}>
+					<Typography variant='subtitle1' sx={{ fontWeight: "bold", color: "#333", mb: 0.5 }}>
 						{notification.message}
 					</Typography>
 					<Typography variant='caption' color='textSecondary'>
@@ -102,7 +102,7 @@ const NotificationCard: React.FC<NotificationCardProps> = ({ notification }) => 
 			</Box>
 
 			{notification.type === NotificationType.FRIEND_REQUEST && (
-				<Box sx={{ display: "flex", gap: 1, mt: 1 }}>
+				<Box sx={{ display: "flex", gap: 1, mt: 2, justifyContent: "center" }}>
 					<Button
 						variant='contained'
 						size='small'
@@ -111,10 +111,10 @@ const NotificationCard: React.FC<NotificationCardProps> = ({ notification }) => 
 							backgroundColor: "#ff4081",
 							color: "#fff",
 							borderRadius: "20px",
-							padding: "4px 16px",
-							boxShadow: "0 4px 10px rgba(255, 64, 129, 0.2)",
+							padding: "6px 20px", // Slightly increased padding for larger button
+							boxShadow: "0 4px 12px rgba(255, 64, 129, 0.2)",
 							textTransform: "none",
-							transition: "background-color 0.3s ease, box-shadow 0.3s ease",
+							fontWeight: "bold",
 							"&:hover": {
 								backgroundColor: "#ff79b0",
 								boxShadow: "0 6px 15px rgba(255, 64, 129, 0.25)",
@@ -131,9 +131,9 @@ const NotificationCard: React.FC<NotificationCardProps> = ({ notification }) => 
 							borderColor: "#ff4081",
 							color: "#ff4081",
 							borderRadius: "20px",
-							padding: "4px 16px",
+							padding: "6px 20px", // Similar padding as the accept button
 							textTransform: "none",
-							transition: "border-color 0.3s ease, color 0.3s ease",
+							fontWeight: "bold",
 							"&:hover": {
 								borderColor: "#ff79b0",
 								color: "#ff79b0",

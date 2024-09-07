@@ -1,6 +1,6 @@
 import { Notifications, Message, PersonAdd, Delete } from "@mui/icons-material";
-import { IconButton, Badge, Popover, Box, Typography, Button } from "@mui/material";
-import React, { useState } from "react";
+import { IconButton, Badge, Popover, Box, Typography, Button, LinearProgress } from "@mui/material";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
 import NotificationType from "../../../../constants/Enums/NotificationType";
@@ -12,28 +12,66 @@ interface NotificationDisplayProps {
 }
 
 const NotificationDisplay: React.FC<NotificationDisplayProps> = ({ userId }) => {
-	const { notifications, unreadCount } = useListenForNotifications({ userId });
+	const { notifications, unreadCount, clearNotifications, markAllAsRead } = useListenForNotifications({ userId });
 	const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+	const [timer, setTimer] = useState<NodeJS.Timeout | null>(null);
+	const [progress, setProgress] = useState<number>(0);
 	const navigate = useNavigate();
 
 	const handleClick = (event: React.MouseEvent<HTMLElement>) => {
 		setAnchorEl(event.currentTarget);
+		markAllAsRead(); // Mark notifications as read but keep them visible
 	};
 
 	const handleClose = () => {
 		setAnchorEl(null);
+
+		if (timer) {
+			clearTimeout(timer);
+			setTimer(null);
+		}
+		setProgress(0);
 	};
 
 	const open = Boolean(anchorEl);
 	const id = open ? "notification-popover" : undefined;
 
+	useEffect(() => {
+		if (open && notifications.length !== 0) {
+			let progressValue = 0;
+			const interval = 100;
+			const totalTime = 30000;
+
+			const progressTimer = setInterval(() => {
+				progressValue += (interval / totalTime) * 100;
+				setProgress(progressValue);
+
+				if (progressValue >= 100) {
+					clearNotifications();
+					clearInterval(progressTimer);
+				}
+			}, interval);
+
+			const newTimer = setTimeout(() => {
+				clearNotifications();
+				clearInterval(progressTimer);
+			}, totalTime);
+
+			setTimer(newTimer);
+
+			return () => {
+				clearTimeout(newTimer);
+				clearInterval(progressTimer);
+			};
+		}
+		return () => { };
+	}, [open]);
+
 	const handleAcceptFriendRequest = (notificationId: string) => {
-		// Logic to accept friend request
 		console.log("Friend request accepted:", notificationId);
 	};
 
 	const handleDeleteNotification = (notificationId: string) => {
-		// Logic to delete notification
 		console.log("Notification deleted:", notificationId);
 	};
 
@@ -60,10 +98,8 @@ const NotificationDisplay: React.FC<NotificationDisplayProps> = ({ userId }) => 
 	const renderNotificationItem = (notification: UserNotification) => (
 		<Box key={notification.id} sx={{ p: 1, borderBottom: "1px solid #f0f0f0" }}>
 			<Box sx={{ display: "flex", alignItems: "center" }}>
-				{/* Render Icon */}
 				{getNotificationIcon(notification.type)}
 
-				{/* Notification Message and Time */}
 				<Box>
 					<Typography variant='body2' sx={{ fontWeight: notification.read ? "normal" : "bold" }}>
 						{notification.message}
@@ -120,7 +156,6 @@ const NotificationDisplay: React.FC<NotificationDisplayProps> = ({ userId }) => 
 
 	return (
 		<div>
-			{/* Bell Icon with Badge */}
 			<IconButton
 				onClick={handleClick}
 				sx={{
@@ -149,7 +184,6 @@ const NotificationDisplay: React.FC<NotificationDisplayProps> = ({ userId }) => 
 				</Badge>
 			</IconButton>
 
-			{/* Popover for notifications */}
 			<Popover
 				id={id}
 				open={open}
@@ -171,12 +205,17 @@ const NotificationDisplay: React.FC<NotificationDisplayProps> = ({ userId }) => 
 						</Typography>
 					) : (
 						<Box sx={{ display: "flex", flexDirection: "column" }}>
-							{/* Display each notification */}
 							{notifications.map((notification) => renderNotificationItem(notification))}
 						</Box>
 					)}
 
-					{/* Button to go to home page */}
+					{/* Progress Bar */}
+					{notifications.length !== 0 && (
+						<Box sx={{ px: 2, py: 1 }}>
+							<LinearProgress variant='determinate' value={progress} />
+						</Box>
+					)}
+
 					<Button
 						variant='contained'
 						color='primary'

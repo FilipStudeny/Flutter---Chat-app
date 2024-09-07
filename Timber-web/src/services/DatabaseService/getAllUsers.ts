@@ -19,7 +19,7 @@ import { ServiceResponse } from "../../constants/Models/ServiceResponse";
 import { calculateAge, UserDataModel } from "../../constants/Models/UserDataModel";
 import { FirebaseFireStore } from "../../firebase";
 
-const getUsersOrFriends = async ({
+const getAllUsers = async ({
 	limit: resultLimit = 10,
 	lastDocument,
 	excludeId,
@@ -142,4 +142,4 @@ const getUsersOrFriends = async ({
 	}
 };
 
-export default getUsersOrFriends;
+export default getAllUsers;

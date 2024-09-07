@@ -23,7 +23,6 @@ const useUpdateUserProfile = (): UseUpdateUserProfile => {
 
 		try {
 			const response: ServiceResponse<boolean> = await updateProfile(id, user);
-			console.log(response);
 			if (response.success) {
 				setSuccess(true);
 			} else {

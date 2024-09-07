@@ -690,7 +690,7 @@ const UserProfilePage: React.FC = () => {
 
 				{/* Friends List Section */}
 				<Box sx={{ mb: 6, width: "100%" }}>
-					<UserList fetchFriends userId={id} />
+					<UserList fetchFriends userId={id} excludeId={id} />
 				</Box>
 
 				{/* Modals */}

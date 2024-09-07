@@ -11,9 +11,10 @@ interface UserListProps {
 	separateFilter?: boolean;
 	fetchFriends?: boolean;
 	userId?: string;
+	excludeId?: string;
 }
 
-const UserList: React.FC<UserListProps> = ({ separateFilter, fetchFriends, userId }: UserListProps) => {
+const UserList: React.FC<UserListProps> = ({ separateFilter, fetchFriends, userId, excludeId }: UserListProps) => {
 	const {
 		searchQuery,
 		setSearchQuery,
@@ -31,7 +32,7 @@ const UserList: React.FC<UserListProps> = ({ separateFilter, fetchFriends, userI
 		noResultsFound,
 		handleLoadMore,
 		fetchUsers,
-	} = useUsersListFetch(userId, fetchFriends);
+	} = useUsersListFetch(userId, excludeId, fetchFriends);
 
 	return (
 		<>

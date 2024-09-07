@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { Gender } from "../../constants/Enums/Gender";
 import useGetUsers from "../useGetUsers";
 
-function useUsersListFetch(userId: string | undefined, fetchFriends: boolean = false) {
+function useUsersListFetch(userId: string | undefined, excludeId: string | undefined, fetchFriends: boolean = false) {
 	const [searchQuery, setSearchQuery] = useState<string>("");
 	const [ageRange, setAgeRange] = useState<number[]>([18, 99]);
 	const [genderFilter, setGenderFilter] = useState<Gender | "">("");
@@ -15,6 +15,7 @@ function useUsersListFetch(userId: string | undefined, fetchFriends: boolean = f
 		searchQuery,
 		fetchFriends,
 		userId,
+		excludeId,
 	});
 
 	const handleOpenAgeDialog = () => {

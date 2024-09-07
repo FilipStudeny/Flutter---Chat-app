@@ -1,53 +1,40 @@
 import { useState } from "react";
-import { toast } from "react-hot-toast";
 
-import { UserDataModel } from "../../constants/Models/UserDataModel";
-import { useAuth } from "../../context/AuthenticationContext";
+import { ServiceResponse } from "../../constants/Models/ServiceResponse";
 import removeFriend from "../../services/DatabaseService/removeFriend";
 
-type UseRemoveFriendHook = (
-	user: UserDataModel,
-	handleCloseRemoveFriendModal: () => void,
-) => {
-	removeFriendAction: () => Promise<void>;
+interface UseRemoveFriend {
 	loading: boolean;
-};
+	error: string | null;
+	success: boolean;
+	removeFriendAction: (userId: string, friendId: string) => Promise<void>;
+}
 
-const useRemoveFriend: UseRemoveFriendHook = (user, handleCloseRemoveFriendModal) => {
-	const { currentUser, userData, setUserData } = useAuth();
-	const [loading, setLoading] = useState(false);
+const useRemoveFriend = (): UseRemoveFriend => {
+	const [loading, setLoading] = useState<boolean>(false);
+	const [error, setError] = useState<string | null>(null);
+	const [success, setSuccess] = useState<boolean>(false);
 
-	const removeFriendAction = async () => {
-		if (!currentUser?.uid || !user?.uid) return;
-
+	const removeFriendAction = async (userId: string, friendId: string): Promise<void> => {
 		setLoading(true);
+		setError(null);
+		setSuccess(false);
 
 		try {
-			const response = await removeFriend(currentUser.uid, user.uid);
+			const response: ServiceResponse<void> = await removeFriend(userId, friendId);
 			if (response.success) {
-				toast.success("Friend removed successfully.");
-
-				if (userData) {
-					const updatedFriends = userData.friends?.filter((friendId) => friendId !== user.uid) || [];
-
-					setUserData({
-						...userData,
-						friends: updatedFriends,
-					});
-				}
-
-				handleCloseRemoveFriendModal();
+				setSuccess(true);
 			} else {
-				toast.error(response.message || "Failed to remove friend.");
+				setError(response.message || "Error removing friend.");
 			}
 		} catch (err) {
-			toast.error(err instanceof Error ? err.message : "Unknown error occurred");
+			setError("An error occurred while removing the friend.");
 		} finally {
 			setLoading(false);
 		}
 	};
 
-	return { removeFriendAction, loading };
+	return { loading, error, success, removeFriendAction };
 };
 
 export default useRemoveFriend;

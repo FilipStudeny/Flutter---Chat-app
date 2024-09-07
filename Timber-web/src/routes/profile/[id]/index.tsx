@@ -39,19 +39,23 @@ import UserList from "../../../components/Lists/UsersList";
 import NotificationType from "../../../constants/Enums/NotificationType";
 import { calculateAge, UserDataModel } from "../../../constants/Models/UserDataModel";
 import { useAuth } from "../../../context/AuthenticationContext";
-import useGetUserPhotos from "../../../hooks/useFetchUserPhotos";
-import useGetUser from "../../../hooks/useGetUser";
-import useUpdateProfilePicture from "../../../hooks/useUpdateProfilePicture";
-import useUpdateProfile from "../../../hooks/useUpdateUserProfile";
-import useUploadFile from "../../../hooks/useUploadFile";
-import removeFriend from "../../../services/DatabaseService/removeFriend";
-import createNotification from "../../../services/NotificationsService/createNotification";
+import {
+	useCreateNotification,
+	useDeleteFiles,
+	useGetUser,
+	useGetUserPhotos,
+	useRemoveFriend,
+	useUpdateProfilePicture,
+	useUpdateUserProfile,
+	useUploadFile,
+	useCheckFriendRequest,
+	useDeleteNotification,
+} from "../../../hooks";
 
 const UserProfilePage: React.FC = () => {
 	const { id } = useParams<{ id: string }>();
 	const { currentUser, userData, setUserData } = useAuth();
 
-	// Custom hooks to fetch user, photos, and friends
 	const { user, loading: userLoading, error: userError, fetchUser } = useGetUser({ userId: id as string });
 	const {
 		photos: uploadedPictures,
@@ -72,7 +76,39 @@ const UserProfilePage: React.FC = () => {
 		loading: updateProfileLoading,
 		error: updateProfileError,
 		success: updateProfileSuccess,
-	} = useUpdateProfile();
+	} = useUpdateUserProfile();
+	const {
+		deleteMultipleFiles,
+		loading: deleteLoading,
+		error: deleteError,
+		success: deleteSuccess,
+	} = useDeleteFiles();
+
+	const {
+		removeFriendAction,
+		loading: removeFriendLoading,
+		success: removeFriendSuccess,
+		error: removeFriendError,
+	} = useRemoveFriend();
+	const { sendNotification, loading: notificationLoading, error: notificationError } = useCreateNotification();
+
+	const {
+		checkNotification,
+		loading: checkLoading,
+		notificationExists,
+		notificationId,
+	} = useCheckFriendRequest({
+		senderId: currentUser?.uid as string,
+		senderName: currentUser?.displayName as string,
+		recipientId: id as string,
+	});
+
+	const {
+		loading: deleteNotificationLoading,
+		error: deleteNotificationError,
+		success: deleteNotificationSuccess,
+		deleteNotificationById,
+	} = useDeleteNotification();
 
 	const [newProfilePicture, setNewProfilePicture] = useState<File | null>(null);
 	const [newPhotoFile, setNewPhotoFile] = useState<File | null>(null);
@@ -160,6 +196,18 @@ const UserProfilePage: React.FC = () => {
 		}
 	}, [profilePictureError, uploadError, updateProfileError]);
 
+	useEffect(() => {
+		if (deleteNotificationLoading) {
+			toast.loading("Canceling friend request...");
+		} else if (deleteNotificationSuccess) {
+			toast.dismiss();
+			toast.success("Friend request canceled.");
+		} else if (deleteNotificationError) {
+			toast.dismiss();
+			toast.error(deleteNotificationError);
+		}
+	}, [deleteNotificationLoading, deleteNotificationSuccess, deleteNotificationError]);
+
 	const handleNewPhotoUpload = async () => {
 		if (newPhotoFile) {
 			const fileName = `${currentUser?.uid}_${new Date().getTime()}`;
@@ -235,35 +283,57 @@ const UserProfilePage: React.FC = () => {
 	};
 
 	const handleDeleteSelectedPhotos = async () => {
-		// Implement the deletion logic here
-	};
-
-	const handleToggleFriend = async () => {
-		if (currentUser?.uid && user?.uid) {
+		if (selectedPicturesForDeletion.length > 0) {
 			try {
-				if (userData?.friends?.includes(user.uid)) {
-					const response = await removeFriend(currentUser.uid, user.uid);
-					if (response.success) {
-						toast.success("Friend removed successfully.");
-					} else {
-						toast.error(response.message || "Failed to remove friend.");
-					}
-				} else {
-					const notificationResponse = await createNotification(
-						currentUser.uid,
-						user.uid,
-						`${currentUser.displayName} has sent you a friend request.`,
-						NotificationType.FRIEND_REQUEST,
-					);
-
-					if (notificationResponse.success) {
-						toast.success("Friend request sent successfully.");
-					} else {
-						toast.error(notificationResponse.message || "Failed to send friend request notification.");
-					}
+				await deleteMultipleFiles(selectedPicturesForDeletion);
+				if (deleteSuccess) {
+					toast.success("Selected photos deleted successfully.");
+					reloadUserData();
+					handleCloseManagePhotosModal();
+				}
+				if (deleteError) {
+					toast.error(deleteError);
 				}
 			} catch (err) {
-				toast.error(err instanceof Error ? err.message : "Unknown error occurred");
+				toast.error("An error occurred while deleting photos.");
+			}
+		}
+	};
+	const handleToggleFriend = async () => {
+		if (currentUser?.uid && user?.uid) {
+			const message = `${currentUser.displayName} has sent you a friend request.`;
+			const notificationExists = await checkNotification();
+
+			if (notificationExists && notificationId) {
+				const response = await deleteNotificationById(user.uid, notificationId);
+
+				if (response.success) {
+					toast.success("Friend request canceled.");
+
+					await checkNotification();
+				} else {
+					toast.error(response.message || "Failed to cancel friend request.");
+				}
+				return;
+			}
+
+			if (userData?.friends?.includes(user.uid)) {
+				await removeFriendAction(currentUser.uid, user.uid);
+				if (removeFriendSuccess) {
+					toast.success("Friend removed successfully.");
+				}
+				if (removeFriendError) {
+					toast.error(removeFriendError);
+				}
+			} else {
+				await sendNotification(currentUser.uid, user.uid, message, NotificationType.FRIEND_REQUEST);
+				if (!notificationError) {
+					toast.success("Friend request sent successfully.");
+
+					await checkNotification();
+				} else {
+					toast.error(notificationError);
+				}
 			}
 		}
 	};
@@ -278,26 +348,30 @@ const UserProfilePage: React.FC = () => {
 
 	const handleConfirmRemoveFriend = async () => {
 		if (currentUser?.uid && user?.uid) {
-			try {
-				const response = await removeFriend(currentUser.uid, user.uid);
-				if (response.success) {
-					toast.success("Friend removed successfully.");
+			await removeFriendAction(currentUser.uid, user.uid);
+			if (removeFriendSuccess) {
+				toast.success("Friend removed successfully.");
 
-					if (userData) {
-						const updatedFriends = userData.friends?.filter((friendId) => friendId !== user.uid) || [];
-
-						setUserData({
-							...userData,
-							friends: updatedFriends,
-						});
+				if (notificationId) {
+					const response = await deleteNotificationById(user.uid, notificationId);
+					if (response.success) {
+						toast.success("Notification removed successfully.");
+					} else {
+						toast.error(response.message || "Failed to remove the notification.");
 					}
-
-					handleCloseRemoveFriendModal();
-				} else {
-					toast.error(response.message || "Failed to remove friend.");
 				}
-			} catch (err) {
-				toast.error(err instanceof Error ? err.message : "Unknown error occurred");
+
+				if (userData) {
+					const updatedFriends = userData.friends?.filter((friendId) => friendId !== user.uid) || [];
+					setUserData({
+						...userData,
+						friends: updatedFriends,
+					});
+				}
+
+				handleCloseRemoveFriendModal();
+			} else if (removeFriendError) {
+				toast.error(removeFriendError);
 			}
 		}
 	};
@@ -383,7 +457,7 @@ const UserProfilePage: React.FC = () => {
 								boxShadow: "0 4px 20px rgba(0, 0, 0, 0.1)",
 								backgroundColor: "#fff",
 								width: "100%",
-								mx: "auto", // Center horizontally
+								mx: "auto",
 							}}
 						>
 							{/* Add/Remove Friend Button */}
@@ -391,7 +465,11 @@ const UserProfilePage: React.FC = () => {
 								variant='contained'
 								color='primary'
 								startIcon={
-									userData?.friends?.includes(user?.uid as string) ? (
+									removeFriendLoading ? (
+										<CircularProgress size={24} />
+									) : userData?.friends?.includes(user?.uid as string) ? (
+										<RemoveCircleOutlineIcon />
+									) : notificationExists ? (
 										<RemoveCircleOutlineIcon />
 									) : (
 										<PersonAddIcon />
@@ -402,6 +480,7 @@ const UserProfilePage: React.FC = () => {
 										? handleOpenRemoveFriendModal
 										: handleToggleFriend
 								}
+								disabled={removeFriendLoading || notificationLoading || checkLoading}
 								sx={{
 									background:
 										"linear-gradient(45deg, rgba(255,64,129,1) 0%, rgba(255,105,135,1) 100%)",
@@ -413,7 +492,13 @@ const UserProfilePage: React.FC = () => {
 									},
 								}}
 							>
-								{userData?.friends?.includes(user?.uid as string) ? "Remove Friend" : "Add Friend"}
+								{removeFriendLoading || notificationLoading || checkLoading
+									? "Processing..."
+									: userData?.friends?.includes(user?.uid as string)
+										? "Remove Friend"
+										: notificationExists
+											? "Cancel Friend Request"
+											: "Add Friend"}
 							</Button>
 
 							{/* Modal for confirming friend removal */}
@@ -697,7 +782,7 @@ const UserProfilePage: React.FC = () => {
 					) : (
 						<PhotosSection
 							isCurrentUserProfile={isCurrentUserProfile}
-							uploadedPictures={uploadedPictures}
+							uploadedPictures={uploadedPictures ?? []}
 							reloadUserData={reloadUserData}
 						/>
 					)}
@@ -966,7 +1051,7 @@ const UserProfilePage: React.FC = () => {
 							Choose from Uploaded Pictures
 						</Typography>
 						<Grid container spacing={2} justifyContent='center'>
-							{uploadedPictures.map((picture) => (
+							{uploadedPictures?.map((picture) => (
 								<Grid item key={picture.name || picture.url}>
 									<Box
 										sx={{
@@ -1093,7 +1178,7 @@ const UserProfilePage: React.FC = () => {
 						</Box>
 
 						<Grid container spacing={2} justifyContent='center'>
-							{uploadedPictures.map((picture) => (
+							{uploadedPictures?.map((picture) => (
 								<Grid item key={picture.name || picture.url}>
 									<Box
 										sx={{
@@ -1147,16 +1232,16 @@ const UserProfilePage: React.FC = () => {
 								color='primary'
 								startIcon={<DeleteIcon />}
 								onClick={handleDeleteSelectedPhotos}
-								disabled={selectedPicturesForDeletion.length === 0}
+								disabled={selectedPicturesForDeletion.length === 0 || deleteLoading}
 								sx={{
-									bgcolor: "#f44336",
+									bgcolor: deleteLoading ? "rgba(0,0,0,0.2)" : "#f44336",
 									color: "white",
 									"&:hover": {
 										bgcolor: "#d32f2f",
 									},
 								}}
 							>
-								Delete Selected
+								{deleteLoading ? "Deleting..." : "Delete Selected"}
 							</Button>
 						</Box>
 					</Box>

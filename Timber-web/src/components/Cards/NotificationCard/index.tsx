@@ -1,14 +1,14 @@
 import MessageIcon from "@mui/icons-material/Message";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import PersonAddIcon from "@mui/icons-material/PersonAdd";
-import { Card, IconButton, Box, Typography, Button } from "@mui/material";
+import { Card, IconButton, Box, Typography, Button, CircularProgress } from "@mui/material";
 import React from "react";
 import toast from "react-hot-toast";
 
 import NotificationType from "../../../constants/Enums/NotificationType";
 import UserNotification from "../../../constants/Models/UserNotification";
 import { useAuth } from "../../../context/AuthenticationContext";
-import addFriend from "../../../services/DatabaseService/addFriend";
+import useAddFriend from "../../../hooks/useAddFriend";
 import deleteNotification from "../../../services/NotificationsService/deleteNotification";
 
 interface NotificationCardProps {
@@ -17,6 +17,7 @@ interface NotificationCardProps {
 
 const NotificationCard: React.FC<NotificationCardProps> = ({ notification }) => {
 	const { currentUser } = useAuth();
+	const { addFriendToUser, loading, error, success } = useAddFriend();
 
 	const renderNotificationIcon = (type: NotificationType) => {
 		switch (type) {
@@ -50,16 +51,13 @@ const NotificationCard: React.FC<NotificationCardProps> = ({ notification }) => 
 
 	const handleAccept = async () => {
 		if (currentUser && notification.senderId) {
-			try {
-				const response = await addFriend(currentUser.uid, notification.senderId);
-				if (response.success) {
-					toast.success("Friend request accepted!");
-					await handleDeclineFriendRequest(notification.id, true);
-				} else {
-					toast.error(response.message || "Failed to accept friend request.");
-				}
-			} catch (error) {
-				toast.error("An error occurred while accepting the friend request.");
+			await addFriendToUser(currentUser.uid, notification.senderId);
+
+			if (success) {
+				toast.success("Friend request accepted!");
+				await handleDeclineFriendRequest(notification.id, true);
+			} else if (error) {
+				toast.error(error || "Failed to accept friend request.");
 			}
 		}
 	};
@@ -72,11 +70,11 @@ const NotificationCard: React.FC<NotificationCardProps> = ({ notification }) => 
 				display: "flex",
 				flexDirection: "column",
 				alignItems: "center",
-				maxWidth: "300px", // Increased width for better readability
+				maxWidth: "300px",
 				mx: "auto",
 				backgroundColor: "#fefefe",
-				boxShadow: "0 6px 20px rgba(0, 0, 0, 0.1)", // Softer shadow for modern feel
-				borderRadius: "16px", // Slightly more rounded corners
+				boxShadow: "0 6px 20px rgba(0, 0, 0, 0.1)",
+				borderRadius: "16px",
 				textAlign: "center",
 				position: "relative",
 				overflow: "hidden",
@@ -111,7 +109,7 @@ const NotificationCard: React.FC<NotificationCardProps> = ({ notification }) => 
 							backgroundColor: "#ff4081",
 							color: "#fff",
 							borderRadius: "20px",
-							padding: "6px 20px", // Slightly increased padding for larger button
+							padding: "6px 20px",
 							boxShadow: "0 4px 12px rgba(255, 64, 129, 0.2)",
 							textTransform: "none",
 							fontWeight: "bold",
@@ -120,8 +118,9 @@ const NotificationCard: React.FC<NotificationCardProps> = ({ notification }) => 
 								boxShadow: "0 6px 15px rgba(255, 64, 129, 0.25)",
 							},
 						}}
+						disabled={loading} // Disable button while loading
 					>
-						Accept
+						{loading ? <CircularProgress size={20} color='inherit' /> : "Accept"}
 					</Button>
 					<Button
 						variant='outlined'

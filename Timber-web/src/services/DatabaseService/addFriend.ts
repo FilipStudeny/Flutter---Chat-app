@@ -29,8 +29,6 @@ async function addFriend(userId: string, friendId: string): Promise<ServiceRespo
 			}
 		}
 
-		// Send notification to the friend
-
 		return { success: true };
 	} catch (err) {
 		let errorMessage = "An unknown error occurred";

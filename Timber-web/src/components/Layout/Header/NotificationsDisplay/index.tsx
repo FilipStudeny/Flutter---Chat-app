@@ -1,10 +1,13 @@
 import { Notifications, Message, PersonAdd, Delete } from "@mui/icons-material";
-import { IconButton, Badge, Popover, Box, Typography, Button, LinearProgress } from "@mui/material";
+import { IconButton, Badge, Popover, Box, Typography, Button, LinearProgress, CircularProgress } from "@mui/material";
 import React, { useState, useEffect } from "react";
+import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 
 import NotificationType from "../../../../constants/Enums/NotificationType";
 import UserNotification from "../../../../constants/Models/UserNotification";
+import useAddFriend from "../../../../hooks/useAddFriend";
+import useDeleteNotification from "../../../../hooks/useDeleteNotification";
 import useListenForNotifications from "../../../../hooks/useListenForNotifications";
 
 interface NotificationDisplayProps {
@@ -12,7 +15,20 @@ interface NotificationDisplayProps {
 }
 
 const NotificationDisplay: React.FC<NotificationDisplayProps> = ({ userId }) => {
-	const { notifications, unreadCount, clearNotifications, markAllAsRead } = useListenForNotifications({ userId });
+	const { notifications, unreadCount, clearNotifications, markAllAsRead, removeNotificationFromList } =
+		useListenForNotifications({ userId });
+	const {
+		addFriendToUser,
+		loading: addFriendLoading,
+		error: addFriendError,
+		success: addFriendSuccess,
+	} = useAddFriend();
+	const {
+		deleteNotificationById,
+		loading: deleteNotificationLoading,
+		error: deleteNotificationError,
+		success: deleteNotificationSuccess,
+	} = useDeleteNotification();
 	const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 	const [timer, setTimer] = useState<NodeJS.Timeout | null>(null);
 	const [progress, setProgress] = useState<number>(0);
@@ -20,7 +36,7 @@ const NotificationDisplay: React.FC<NotificationDisplayProps> = ({ userId }) => 
 
 	const handleClick = (event: React.MouseEvent<HTMLElement>) => {
 		setAnchorEl(event.currentTarget);
-		markAllAsRead(); // Mark notifications as read but keep them visible
+		markAllAsRead();
 	};
 
 	const handleClose = () => {
@@ -64,15 +80,29 @@ const NotificationDisplay: React.FC<NotificationDisplayProps> = ({ userId }) => 
 				clearInterval(progressTimer);
 			};
 		}
-		return () => { };
+		return () => {};
 	}, [open]);
 
-	const handleAcceptFriendRequest = (notificationId: string) => {
-		console.log("Friend request accepted:", notificationId);
+	const handleDeleteNotification = async (notificationId: string) => {
+		await deleteNotificationById(userId, notificationId);
+
+		if (deleteNotificationSuccess) {
+			toast.success("Notification deleted successfully!");
+			removeNotificationFromList(notificationId);
+		} else if (deleteNotificationError) {
+			toast.error(deleteNotificationError || "Failed to delete notification.");
+		}
 	};
 
-	const handleDeleteNotification = (notificationId: string) => {
-		console.log("Notification deleted:", notificationId);
+	const handleAcceptFriendRequest = async (notificationId: string, senderId: string) => {
+		await addFriendToUser(userId, senderId);
+
+		if (addFriendSuccess) {
+			toast.success("Friend request accepted!");
+			removeNotificationFromList(notificationId);
+		} else if (addFriendError) {
+			toast.error(addFriendError || "Failed to accept friend request.");
+		}
 	};
 
 	const getNotificationIcon = (type: NotificationType) => {
@@ -110,13 +140,12 @@ const NotificationDisplay: React.FC<NotificationDisplayProps> = ({ userId }) => 
 				</Box>
 			</Box>
 
-			{/* If it's a friend request, show Accept and Delete buttons */}
 			{notification.type === NotificationType.FRIEND_REQUEST && (
 				<Box sx={{ display: "flex", justifyContent: "center", gap: 1, mt: 1 }}>
 					<Button
 						variant='contained'
 						size='small'
-						onClick={() => handleAcceptFriendRequest(notification.id)}
+						onClick={() => handleAcceptFriendRequest(notification.id, notification.senderId)}
 						sx={{
 							background: "linear-gradient(45deg, rgba(255,64,129,1) 0%, rgba(255,105,135,1) 100%)",
 							color: "#fff",
@@ -127,8 +156,9 @@ const NotificationDisplay: React.FC<NotificationDisplayProps> = ({ userId }) => 
 									"linear-gradient(45deg, rgba(255,64,129,0.8) 0%, rgba(255,105,135,0.8) 100%)",
 							},
 						}}
+						disabled={addFriendLoading}
 					>
-						Accept
+						{addFriendLoading ? <CircularProgress size={20} color='inherit' /> : "Accept"}
 					</Button>
 					<Button
 						variant='outlined'
@@ -146,8 +176,9 @@ const NotificationDisplay: React.FC<NotificationDisplayProps> = ({ userId }) => 
 								background: "rgba(255,105,135,0.1)",
 							},
 						}}
+						disabled={deleteNotificationLoading}
 					>
-						Delete
+						{deleteNotificationLoading ? <CircularProgress size={20} color='inherit' /> : "Delete"}
 					</Button>
 				</Box>
 			)}

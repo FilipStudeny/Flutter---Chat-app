@@ -1,62 +1,46 @@
 import { useState } from "react";
-import { toast } from "react-hot-toast";
 
-import NotificationType from "../../constants/Enums/NotificationType";
-import { UserDataModel } from "../../constants/Models/UserDataModel";
-import { useAuth } from "../../context/AuthenticationContext";
-import removeFriend from "../../services/DatabaseService/removeFriend";
-import createNotification from "../../services/NotificationsService/createNotification";
+import { ServiceResponse } from "../../constants/Models/ServiceResponse";
+import addFriend from "../../services/DatabaseService/addFriend";
 
-type UseAddFriendHook = (user: UserDataModel) => {
-	isFriend: boolean;
-	toggleFriend: () => Promise<void>;
+interface UseAddFriend {
 	loading: boolean;
-};
+	error: string | null;
+	success: boolean | null;
+	addFriendToUser: (userId: string, friendId: string) => Promise<void>;
+}
 
-const useAddFriend: UseAddFriendHook = (user) => {
-	const { currentUser, userData } = useAuth();
-	const [loading, setLoading] = useState(false);
-	const [isFriend, setIsFriend] = useState<boolean>(userData?.friends?.includes(user.uid as string) || false);
+const useAddFriend = (): UseAddFriend => {
+	const [loading, setLoading] = useState<boolean>(false);
+	const [error, setError] = useState<string | null>(null);
+	const [success, setSuccess] = useState<boolean | null>(null);
 
-	const toggleFriend = async () => {
-		if (loading) return; // Prevent multiple clicks
-		if (!currentUser?.uid || !user?.uid) return;
-
+	const addFriendToUser = async (userId: string, friendId: string): Promise<void> => {
 		setLoading(true);
-		try {
-			if (isFriend) {
-				// Remove friend logic
-				const response = await removeFriend(currentUser.uid, user.uid);
-				if (response.success) {
-					toast.success("Friend removed successfully.");
-					setIsFriend(false);
-				} else {
-					toast.error(response.message || "Failed to remove friend.");
-				}
-			} else {
-				// Send friend request logic
-				const notificationResponse = await createNotification(
-					currentUser.uid,
-					user.uid,
-					`${currentUser.displayName} has sent you a friend request.`,
-					NotificationType.FRIEND_REQUEST,
-				);
+		setError(null);
+		setSuccess(null);
 
-				if (notificationResponse.success) {
-					toast.success("Friend request sent successfully.");
-					setIsFriend(true);
-				} else {
-					toast.error(notificationResponse.message || "Failed to send friend request notification.");
-				}
+		try {
+			const response: ServiceResponse<void> = await addFriend(userId, friendId);
+
+			if (response.success) {
+				setSuccess(true);
+			} else {
+				setError(response.message || "Error adding friend.");
 			}
 		} catch (err) {
-			toast.error(err instanceof Error ? err.message : "Unknown error occurred");
+			setError("An error occurred while adding the friend.");
 		} finally {
 			setLoading(false);
 		}
 	};
 
-	return { isFriend, toggleFriend, loading };
+	return {
+		loading,
+		error,
+		success,
+		addFriendToUser,
+	};
 };
 
 export default useAddFriend;

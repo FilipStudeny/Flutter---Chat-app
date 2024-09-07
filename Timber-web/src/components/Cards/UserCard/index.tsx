@@ -1,7 +1,7 @@
 import FemaleIcon from "@mui/icons-material/Female";
 import MaleIcon from "@mui/icons-material/Male";
 import PersonAddIcon from "@mui/icons-material/PersonAdd";
-import PersonRemoveIcon from "@mui/icons-material/PersonRemove";
+import RemoveCircleOutlineIcon from "@mui/icons-material/RemoveCircleOutline";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import {
 	Box,
@@ -11,42 +11,137 @@ import {
 	Divider,
 	Avatar,
 	IconButton,
+	Tooltip,
+	CircularProgress,
 	Dialog,
 	DialogTitle,
 	DialogContent,
+	DialogContentText,
 	DialogActions,
 	Button,
-	CircularProgress,
-	Tooltip,
 } from "@mui/material";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 
 import { Gender } from "../../../constants/Enums/Gender";
+import NotificationType from "../../../constants/Enums/NotificationType";
 import { calculateAge, UserDataModel } from "../../../constants/Models/UserDataModel";
-import useAddFriend from "../../../hooks/useAddFriend";
-import useRemoveFriend from "../../../hooks/useRemoveFriend";
+import { useAuth } from "../../../context/AuthenticationContext";
+import { useCreateNotification, useRemoveFriend, useCheckFriendRequest, useDeleteNotification } from "../../../hooks";
 
 interface UserCardProps {
 	user: UserDataModel;
 }
 
 const UserCard: React.FC<UserCardProps> = ({ user }) => {
-	const { isFriend, toggleFriend, loading: friendLoading } = useAddFriend(user);
+	const { currentUser, userData, setUserData } = useAuth();
 	const navigate = useNavigate();
 
-	// State for handling remove friend modal
-	const [isRemoveModalOpen, setRemoveModalOpen] = useState(false);
+	const {
+		removeFriendAction,
+		loading: removeFriendLoading,
+		error: removeFriendError,
+		success: removeFriendSuccess,
+	} = useRemoveFriend();
 
-	const handleOpenRemoveModal = () => {
-		setRemoveModalOpen(true);
+	const { sendNotification, loading: notificationLoading, error: notificationError } = useCreateNotification();
+	const {
+		checkNotification,
+		loading: checkLoading,
+		notificationExists,
+		notificationId,
+	} = useCheckFriendRequest({
+		senderId: currentUser?.uid as string,
+		recipientId: user.uid as string,
+		senderName: currentUser?.displayName as string,
+	});
+	const { deleteNotificationById, loading: deleteNotificationLoading } = useDeleteNotification();
+
+	const [isFriend, setIsFriend] = useState<boolean>(!!userData?.friends?.includes(user?.uid as string));
+	const [confirmRemoveFriendOpen, setConfirmRemoveFriendOpen] = useState<boolean>(false);
+
+	const handleCloseRemoveFriendModal = () => {
+		setConfirmRemoveFriendOpen(false);
 	};
 
-	const handleCloseRemoveModal = () => {
-		setRemoveModalOpen(false);
+	useEffect(() => {
+		checkNotification();
+	}, [checkNotification]);
+
+	useEffect(() => {
+		if (notificationError) {
+			toast.error("Failed to send friend request. Please try again.");
+		}
+		if (removeFriendError) {
+			toast.error("Failed to remove friend.");
+		}
+	}, [notificationError, removeFriendError]);
+
+	const handleToggleFriend = async () => {
+		if (currentUser?.uid && user?.uid) {
+			// If the user is already a friend, open the confirmation modal
+			if (isFriend) {
+				setConfirmRemoveFriendOpen(true);
+				return; // Stop further execution, we want to show the modal first
+			}
+
+			// Proceed with sending a friend request if not a friend
+			const message = `${currentUser.displayName} has sent you a friend request.`;
+			const notificationExists = await checkNotification();
+
+			if (notificationExists && notificationId) {
+				const response = await deleteNotificationById(user.uid, notificationId);
+
+				if (response.success) {
+					toast.success("Friend request canceled.");
+					await checkNotification();
+				} else {
+					toast.error(response.message || "Failed to cancel friend request.");
+				}
+				return;
+			}
+
+			await sendNotification(currentUser.uid, user.uid, message, NotificationType.FRIEND_REQUEST);
+			if (!notificationError) {
+				toast.success("Friend request sent successfully.");
+				await checkNotification();
+			} else {
+				toast.error(notificationError);
+			}
+		}
 	};
 
-	const { removeFriendAction, loading: removeLoading } = useRemoveFriend(user, handleCloseRemoveModal);
+	const handleConfirmRemoveFriend = async () => {
+		if (currentUser?.uid && user?.uid) {
+			await removeFriendAction(currentUser.uid, user.uid);
+			if (removeFriendSuccess) {
+				toast.success("Friend removed successfully.");
+
+				if (notificationId) {
+					const response = await deleteNotificationById(user.uid, notificationId);
+					if (response.success) {
+						toast.success("Notification removed successfully.");
+					} else {
+						toast.error(response.message || "Failed to remove the notification.");
+					}
+				}
+
+				if (userData) {
+					const updatedFriends = userData.friends?.filter((friendId) => friendId !== user.uid) || [];
+					setUserData({
+						...userData,
+						friends: updatedFriends,
+					});
+				}
+
+				handleCloseRemoveFriendModal();
+				setIsFriend(false);
+			} else if (removeFriendError) {
+				toast.error(removeFriendError);
+			}
+		}
+	};
 
 	return (
 		<Card
@@ -54,20 +149,9 @@ const UserCard: React.FC<UserCardProps> = ({ user }) => {
 				boxShadow: 4,
 				borderRadius: 3,
 				transition: "transform 0.2s, box-shadow 0.2s",
-				"&:hover": {
-					transform: "scale(1.03)",
-					boxShadow: 6,
-				},
-				height: "100%",
-				display: "flex",
-				flexDirection: "column",
-				justifyContent: "space-between",
-				alignItems: "center",
-				overflow: "hidden",
-				backgroundColor: "#ffffff",
+				"&:hover": { transform: "scale(1.03)", boxShadow: 6 },
 			}}
 		>
-			{/* Profile picture as card cover */}
 			<Box
 				sx={{
 					width: "100%",
@@ -111,14 +195,7 @@ const UserCard: React.FC<UserCardProps> = ({ user }) => {
 				<Typography variant='body2' color='text.secondary' sx={{ mb: 1 }}>
 					Age: {calculateAge(user.dateOfBirth as Date)}
 				</Typography>
-				<Box
-					sx={{
-						display: "flex",
-						alignItems: "center",
-						justifyContent: "center",
-						mt: 1,
-					}}
-				>
+				<Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", mt: 1 }}>
 					{user.gender === Gender.Male ? (
 						<MaleIcon sx={{ color: "#2196F3", fontSize: 30, mr: 1 }} />
 					) : user.gender === Gender.Female ? (
@@ -128,34 +205,39 @@ const UserCard: React.FC<UserCardProps> = ({ user }) => {
 			</CardContent>
 			<Divider sx={{ width: "100%", my: 1 }} />
 			<Box sx={{ display: "flex", justifyContent: "center", gap: 1, p: 2 }}>
-				<Tooltip title={isFriend ? "Remove Friend" : "Add Friend"}>
+				{/* Add/Remove Friend Button */}
+				<Tooltip
+					title={isFriend ? "Remove Friend" : notificationExists ? "Cancel Friend Request" : "Add Friend"}
+				>
 					<IconButton
 						color='primary'
-						aria-label={isFriend ? "remove friend" : "add friend"}
-						onClick={isFriend ? handleOpenRemoveModal : toggleFriend}
-						disabled={friendLoading || removeLoading}
+						onClick={handleToggleFriend}
+						disabled={
+							removeFriendLoading || notificationLoading || checkLoading || deleteNotificationLoading
+						}
 						sx={{
-							backgroundColor: isFriend ? "#FF1053" : "#FF4081",
+							backgroundColor: isFriend || notificationExists ? "#FF4081" : "#2196F3",
 							color: "white",
 							"&:hover": {
-								backgroundColor: isFriend ? "#FF4081" : "#FF1053",
+								backgroundColor: isFriend || notificationExists ? "#FF1053" : "#FF4081",
 							},
 						}}
 					>
-						{isFriend ? <PersonRemoveIcon /> : <PersonAddIcon />}
+						{removeFriendLoading || notificationLoading || checkLoading ? (
+							<CircularProgress size={24} sx={{ color: "white" }} />
+						) : isFriend || notificationExists ? (
+							<RemoveCircleOutlineIcon />
+						) : (
+							<PersonAddIcon />
+						)}
 					</IconButton>
 				</Tooltip>
+
+				{/* View Profile Button */}
 				<Tooltip title='View Profile'>
 					<IconButton
 						color='primary'
-						aria-label='view profile'
-						sx={{
-							backgroundColor: "#FF4081",
-							color: "white",
-							"&:hover": {
-								backgroundColor: "#FF1053",
-							},
-						}}
+						sx={{ backgroundColor: "#FF4081", color: "white", "&:hover": { backgroundColor: "#FF1053" } }}
 						onClick={() => navigate(`/profile/${user.uid}`)}
 					>
 						<VisibilityIcon />
@@ -165,98 +247,61 @@ const UserCard: React.FC<UserCardProps> = ({ user }) => {
 
 			{/* Modal for confirming friend removal */}
 			<Dialog
-				open={isRemoveModalOpen}
-				onClose={handleCloseRemoveModal}
+				open={confirmRemoveFriendOpen}
+				onClose={handleCloseRemoveFriendModal}
+				fullWidth
+				maxWidth='xs'
 				PaperProps={{
 					sx: {
-						borderRadius: 3,
-						overflow: "hidden",
-						boxShadow: "0 4px 20px rgba(0, 0, 0, 0.2)",
+						borderRadius: 4,
+						padding: 2,
+						backgroundColor: "#fff3f8",
+						boxShadow: "0px 4px 10px rgba(0, 0, 0, 0.1)",
 					},
 				}}
 			>
-				<DialogTitle
-					sx={{
-						background: "linear-gradient(45deg, rgba(255,64,129,1) 0%, rgba(255,105,135,1) 100%)",
-						color: "white",
-						fontWeight: "bold",
-						padding: "16px",
-						textAlign: "center",
-					}}
-				>
-					Confirm Remove Friend
+				<DialogTitle sx={{ textAlign: "center", fontWeight: "bold", color: "#d81b60" }}>
+					Remove Friend
 				</DialogTitle>
-				<DialogContent
-					sx={{
-						backgroundColor: "white",
-						padding: "24px",
-						display: "flex",
-						flexDirection: "column",
-						alignItems: "center",
-						textAlign: "center",
-					}}
-				>
-					<Typography m={2} variant='body1' sx={{ color: "text.secondary" }}>
+				<DialogContent sx={{ textAlign: "center", paddingY: 2 }}>
+					<DialogContentText sx={{ color: "#555", fontSize: "1rem", marginBottom: 2 }} component='div'>
 						Are you sure you want to remove{" "}
-						<Typography component='span' sx={{ fontWeight: "bold", color: "#FF4081" }}>
-							{user.firstName} {user.lastName}
-						</Typography>{" "}
-						from your friends list?
-					</Typography>
+						<strong>
+							{user?.firstName} {user?.lastName}
+						</strong>{" "}
+						from your friends?
+					</DialogContentText>
 				</DialogContent>
-				<DialogActions
-					sx={{
-						backgroundColor: "white",
-						padding: "12px 24px",
-						justifyContent: "center",
-					}}
-				>
+				<DialogActions sx={{ justifyContent: "center", paddingX: 3 }}>
 					<Button
-						onClick={handleCloseRemoveModal}
+						onClick={handleCloseRemoveFriendModal}
+						variant='outlined'
 						sx={{
-							backgroundColor: "#FF4081", // Background color for Cancel button
-							color: "white",
-							fontWeight: "bold",
-							padding: "8px 16px", // Increased padding for a larger click area
-							borderRadius: "20px", // Rounded corners
-							transition: "background-color 0.3s ease", // Smooth transition for hover effect
+							borderColor: "#ff4081",
+							color: "#ff4081",
+							paddingX: 3,
 							"&:hover": {
-								backgroundColor: "#E91E63", // Slightly darker shade on hover
-							},
-							"&:disabled": {
-								backgroundColor: "#FFB6C1", // Lighter shade when disabled
+								backgroundColor: "rgba(255, 64, 129, 0.1)",
+								borderColor: "#ff4081",
 							},
 						}}
-						disabled={removeLoading}
 					>
 						Cancel
 					</Button>
 					<Button
-						onClick={removeFriendAction}
+						onClick={handleConfirmRemoveFriend}
 						variant='contained'
 						sx={{
-							backgroundColor: "white",
-							color: "#FF4081",
-							fontWeight: "bold",
-							padding: "8px 16px", // Increased padding for a more prominent button
+							backgroundColor: "#ff4081",
+							color: "#fff",
+							paddingX: 3,
 							marginLeft: 2,
-							borderRadius: "20px", // Rounded corners
-							border: "2px solid #FF4081", // Border to make it stand out
-							boxShadow: "none",
-							transition: "background-color 0.3s ease, color 0.3s ease", // Smooth transition for hover effect
 							"&:hover": {
-								backgroundColor: "#FF4081",
-								color: "white",
-							},
-							"&:disabled": {
-								backgroundColor: "#f0f0f0", // Light gray background when disabled
-								color: "#FFB6C1", // Light pink color when disabled
-								border: "2px solid #FFB6C1", // Border color change when disabled
+								backgroundColor: "#d81b60",
 							},
 						}}
-						disabled={removeLoading}
 					>
-						{removeLoading ? <CircularProgress size={24} sx={{ color: "#FF4081" }} /> : "Remove"}
+						Remove
 					</Button>
 				</DialogActions>
 			</Dialog>

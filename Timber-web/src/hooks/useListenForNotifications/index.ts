@@ -59,12 +59,18 @@ const useListenForNotifications = ({ userId, notificationType = "" }: GetNotific
 		setUnreadCount(0); // Set unread count to 0 after marking all as read
 	};
 
+	const removeNotificationFromList = (notificationId: string) => {
+		setNotifications((prevNotifications) =>
+			prevNotifications.filter((notification) => notification.id !== notificationId),
+		);
+	};
+
 	const clearNotifications = () => {
-		setNotifications([]); // Clears the display
+		setNotifications([]);
 		setUnreadCount(0);
 	};
 
-	return { notifications, unreadCount, clearNotifications, markAllAsRead };
+	return { notifications, unreadCount, clearNotifications, markAllAsRead, removeNotificationFromList };
 };
 
 export default useListenForNotifications;

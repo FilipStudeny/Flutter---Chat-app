@@ -359,6 +359,7 @@ const UserProfilePage: React.FC = () => {
 								width: "auto",
 								textAlign: "center",
 								fontSize: "1.2rem",
+								component: "div",
 							}}
 						>
 							{user?.username}, {calculateAge(user?.dateOfBirth)}
@@ -434,7 +435,10 @@ const UserProfilePage: React.FC = () => {
 									Remove Friend
 								</DialogTitle>
 								<DialogContent sx={{ textAlign: "center", paddingY: 2 }}>
-									<DialogContentText sx={{ color: "#555", fontSize: "1rem", marginBottom: 2 }}>
+									<DialogContentText
+										sx={{ color: "#555", fontSize: "1rem", marginBottom: 2 }}
+										component='div'
+									>
 										Are you sure you want to remove{" "}
 										<strong>
 											{user?.firstName} {user?.lastName}
@@ -661,9 +665,20 @@ const UserProfilePage: React.FC = () => {
 									)}
 								</Box>
 
-								<Typography variant='body1' color='textPrimary' mt={2} sx={{ whiteSpace: "pre-wrap" }}>
+								<Typography
+									variant='body1'
+									color='textPrimary'
+									mt={2}
+									sx={{ whiteSpace: "pre-wrap" }}
+									component='div'
+								>
 									{user?.aboutMe || (
-										<Typography variant='body2' color='textSecondary' fontStyle='italic'>
+										<Typography
+											variant='body2'
+											color='textSecondary'
+											fontStyle='italic'
+											component='span'
+										>
 											No information provided.
 										</Typography>
 									)}

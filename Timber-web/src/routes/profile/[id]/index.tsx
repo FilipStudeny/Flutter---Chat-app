@@ -1,8 +1,10 @@
-import { FlagOutlined, MessageOutlined } from "@mui/icons-material";
+import { FlagOutlined, MessageOutlined, CalendarToday, Phone, Email, Person, Info } from "@mui/icons-material";
 import CloseIcon from "@mui/icons-material/Close";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
+import FemaleIcon from "@mui/icons-material/Female";
+import MaleIcon from "@mui/icons-material/Male";
 import PersonAddIcon from "@mui/icons-material/PersonAdd";
 import RemoveCircleOutlineIcon from "@mui/icons-material/RemoveCircleOutline";
 import SaveIcon from "@mui/icons-material/Save";
@@ -28,7 +30,7 @@ import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import dayjs from "dayjs";
-import React, { useState, ChangeEvent } from "react";
+import React, { useState, ChangeEvent, useEffect } from "react";
 import toast, { Toaster } from "react-hot-toast";
 import { useParams } from "react-router-dom";
 
@@ -39,10 +41,10 @@ import { calculateAge, UserDataModel } from "../../../constants/Models/UserDataM
 import { useAuth } from "../../../context/AuthenticationContext";
 import useGetUserPhotos from "../../../hooks/useFetchUserPhotos";
 import useGetUser from "../../../hooks/useGetUser";
+import useUpdateProfilePicture from "../../../hooks/useUpdateProfilePicture";
+import useUpdateProfile from "../../../hooks/useUpdateUserProfile";
+import useUploadFile from "../../../hooks/useUploadFile";
 import removeFriend from "../../../services/DatabaseService/removeFriend";
-import updateProfile from "../../../services/DatabaseService/updateProfile";
-import updateProfilePicture from "../../../services/DatabaseService/updateProfilePicture";
-import { uploadFile } from "../../../services/FileStorageService/uploadFile";
 import createNotification from "../../../services/NotificationsService/createNotification";
 
 const UserProfilePage: React.FC = () => {
@@ -57,6 +59,20 @@ const UserProfilePage: React.FC = () => {
 		error: photosError,
 		fetchPhotos,
 	} = useGetUserPhotos({ userId: id as string });
+
+	const {
+		updatePicture,
+		loading: profilePictureLoading,
+		error: profilePictureError,
+		success: profilePictureSuccess,
+	} = useUpdateProfilePicture();
+	const { uploadUserFile, loading: uploadLoading, error: uploadError, success: uploadSuccess } = useUploadFile();
+	const {
+		updateUserProfile,
+		loading: updateProfileLoading,
+		error: updateProfileError,
+		success: updateProfileSuccess,
+	} = useUpdateProfile();
 
 	const [newProfilePicture, setNewProfilePicture] = useState<File | null>(null);
 	const [newPhotoFile, setNewPhotoFile] = useState<File | null>(null);
@@ -83,17 +99,14 @@ const UserProfilePage: React.FC = () => {
 		}));
 	};
 
-	const handleProfileUpdate = async () => {
-		if (updatedUserData) {
-			updatedUserData.gender = user?.gender;
-			const response = await updateProfile(user?.uid as string, updatedUserData as UserDataModel);
-			if (response.success) {
-				toast.success("Profile updated successfully.");
-				setEditModalOpen(false);
-				reloadUserData();
-			} else {
-				toast.error(response.message || "Failed to update profile.");
-			}
+	const handleProfileUpdate = () => {
+		if (updatedUserData && userData) {
+			const updatedData = {
+				...updatedUserData,
+				gender: userData.gender,
+			};
+
+			updateUserProfile(user?.uid as string, updatedData);
 		}
 	};
 
@@ -104,42 +117,68 @@ const UserProfilePage: React.FC = () => {
 		}
 	};
 
-	const handleSaveNewProfilePicture = async () => {
+	const handleSaveNewProfilePicture = () => {
 		if (newProfilePicture) {
 			const fileName = `${currentUser?.uid}_${new Date().getTime()}`;
 			const fileDir = `users/${currentUser?.uid}_photos`;
-			const fileUploadResponse = await uploadFile(newProfilePicture, fileDir, fileName);
-
-			if (fileUploadResponse.success) {
-				const url = fileUploadResponse.data?.url;
-				const updateResponse = await updateProfilePicture(currentUser?.uid as string, url as string);
-
-				if (updateResponse.success) {
-					toast.success("Profile picture updated successfully.");
-					setOpenPhotoSelectionModal(false);
-					reloadUserData();
-				} else {
-					toast.error(updateResponse.message || "Failed to update profile picture.");
-				}
-			} else {
-				toast.error(fileUploadResponse.message || "Failed to upload profile picture.");
-			}
+			uploadUserFile(newProfilePicture, fileDir, fileName);
 		}
 	};
+
+	useEffect(() => {
+		if (profilePictureSuccess) {
+			reloadUserData();
+		}
+	}, [profilePictureSuccess]);
+
+	useEffect(() => {
+		if (updateProfileSuccess) {
+			toast.success("Profile updated successfully!");
+			setEditModalOpen(false);
+			reloadUserData();
+		}
+	}, [updateProfileSuccess]);
+
+	useEffect(() => {
+		if (profilePictureSuccess) {
+			toast.success("Profile picture updated successfully.");
+			setOpenPhotoSelectionModal(false);
+			reloadUserData();
+		}
+	}, [profilePictureSuccess]);
+
+	useEffect(() => {
+		if (uploadSuccess) {
+			toast.success("Photo uploaded successfully.");
+			reloadUserData();
+		}
+	}, [uploadSuccess]);
+
+	useEffect(() => {
+		if (profilePictureError || uploadError || updateProfileError) {
+			toast.error("Something went wrong.");
+		}
+	}, [profilePictureError, uploadError, updateProfileError]);
 
 	const handleNewPhotoUpload = async () => {
 		if (newPhotoFile) {
 			const fileName = `${currentUser?.uid}_${new Date().getTime()}`;
 			const fileDir = `users/${currentUser?.uid}_photos`;
-			const fileUploadResponse = await uploadFile(newPhotoFile, fileDir, fileName);
 
-			if (fileUploadResponse.success) {
-				toast.success("Photo uploaded successfully.");
-				setOpenNewPhotoModal(false);
-				setNewPhotoFile(null);
-				reloadUserData();
-			} else {
-				toast.error(fileUploadResponse.message || "Failed to upload photo.");
+			try {
+				const url = await uploadUserFile(newPhotoFile, fileDir, fileName);
+				if (url) {
+					await updatePicture(currentUser?.uid as string, url);
+					setUserData((prevState) => ({
+						...prevState,
+						profilePictureUrl: url,
+					}));
+					toast.success("Profile picture updated successfully.");
+				} else {
+					toast.error("Failed to upload photo.");
+				}
+			} catch (err) {
+				toast.error("An error occurred while uploading the photo.");
 			}
 		}
 	};
@@ -155,18 +194,15 @@ const UserProfilePage: React.FC = () => {
 
 	const handleConfirmSelectUploadedPicture = async () => {
 		if (selectedUploadedPicture) {
-			const updateResponse = await updateProfilePicture(currentUser?.uid as string, selectedUploadedPicture);
-			if (updateResponse.success) {
-				setUpdatedUserData((prevState) => ({
-					...prevState,
-					profilePictureUrl: selectedUploadedPicture,
-				}));
-				setOpenPhotoSelectionModal(false);
-				toast.success("Profile picture updated successfully.");
-				reloadUserData();
-			} else {
-				toast.error(updateResponse.message || "Failed to update profile picture.");
-			}
+			await updatePicture(currentUser?.uid as string, selectedUploadedPicture);
+			setUpdatedUserData((prevState) => ({
+				...prevState,
+				profilePictureUrl: selectedUploadedPicture,
+			}));
+			setUserData((prevState) => ({
+				...prevState,
+				profilePictureUrl: selectedUploadedPicture,
+			}));
 		}
 	};
 
@@ -282,6 +318,7 @@ const UserProfilePage: React.FC = () => {
 							flexDirection: "column",
 							alignItems: "center",
 							width: "100%",
+							marginBottom: isCurrentUserProfile ? 5 : 1,
 						}}
 					>
 						{/* Profile Avatar */}
@@ -477,18 +514,25 @@ const UserProfilePage: React.FC = () => {
 						</Box>
 					)}
 
-					{/* User Information and About Me Sections with userLoading spinner */}
-					<Paper elevation={3} sx={{ p: 3, width: "100%", borderRadius: 4, boxShadow: 3 }}>
-						{userLoading ? (
-							<Box display='flex' justifyContent='center' alignItems='center' minHeight='30vh'>
-								<CircularProgress />
-							</Box>
-						) : (
-							<>
-								{/* User Information Section */}
+					{userLoading ? (
+						<Box display='flex' justifyContent='center' alignItems='center' minHeight='30vh'>
+							<CircularProgress />
+						</Box>
+					) : (
+						<>
+							{/* User Information Section */}
+							<Box
+								sx={{
+									p: 3,
+									width: "100%",
+									borderRadius: 4,
+									boxShadow: "0px 4px 20px rgba(0, 0, 0, 0.1)",
+									mb: 4,
+								}}
+							>
 								<Box display='flex' justifyContent='space-between' alignItems='center' mb={2}>
-									<Typography variant='h6' fontWeight='bold'>
-										User Info
+									<Typography variant='h6' fontWeight='bold' color='textPrimary'>
+										User Information
 									</Typography>
 									{isCurrentUserProfile && (
 										<IconButton onClick={() => setEditModalOpen(true)} size='large'>
@@ -496,62 +540,157 @@ const UserProfilePage: React.FC = () => {
 										</IconButton>
 									)}
 								</Box>
-								<Box>
-									<Typography variant='body1' color='textSecondary'>
-										<strong>Name:</strong> {user?.firstName} {user?.lastName}
-									</Typography>
-									<Typography variant='body1' color='textSecondary'>
-										<strong>Email:</strong> {user?.email}
-									</Typography>
-									<Typography variant='body1' color='textSecondary'>
-										<strong>Phone:</strong> {user?.phoneNumber || "N/A"}
-									</Typography>
-									<Typography variant='body1' color='textSecondary'>
-										<strong>Gender:</strong> {user?.gender}
-									</Typography>
-									<Typography variant='body1' color='textSecondary'>
-										<strong>Date of Birth:</strong>{" "}
-										{user?.dateOfBirth ? user.dateOfBirth.toLocaleDateString() : "N/A"}
-									</Typography>
-								</Box>
 
-								{/* About Me Section */}
-								<Box display='flex' justifyContent='space-between' alignItems='center' mt={3}>
-									<Typography variant='h6' fontWeight='bold'>
-										About Me
-									</Typography>
-									{isCurrentUserProfile && (
-										<IconButton onClick={() => setEditModalOpen(true)} size='large'>
-											<EditIcon />
-										</IconButton>
-									)}
-								</Box>
-								<Typography variant='body1' mt={2}>
-									{user?.aboutMe || "No information provided."}
-								</Typography>
-							</>
-						)}
-					</Paper>
+								{/* User Info Grid */}
+								<Grid container spacing={3}>
+									{/* Name */}
+									<Grid item xs={12} sm={6}>
+										<Box display='flex' alignItems='center'>
+											<Avatar alt='Name Icon' sx={{ bgcolor: "#3f51b5", mr: 2 }}>
+												<Person />
+											</Avatar>
+											<Box>
+												<Typography variant='body2' color='textSecondary'>
+													<strong>Name</strong>
+												</Typography>
+												<Typography variant='body1' color='textPrimary'>
+													{user?.firstName} {user?.lastName}
+												</Typography>
+											</Box>
+										</Box>
+									</Grid>
 
-					{/* Photos Section with separate photosLoading spinner */}
-					<Paper elevation={3} sx={{ mt: 3, p: 3, width: "100%", borderRadius: 4, boxShadow: 3 }}>
-						{photosLoading ? (
-							<Box display='flex' justifyContent='center' alignItems='center' minHeight='30vh'>
-								<CircularProgress />
+									{/* Email */}
+									<Grid item xs={12} sm={6}>
+										<Box display='flex' alignItems='center'>
+											<Avatar alt='Email Icon' sx={{ bgcolor: "#ff4081", mr: 2 }}>
+												<Email />
+											</Avatar>
+											<Box>
+												<Typography variant='body2' color='textSecondary'>
+													<strong>Email</strong>
+												</Typography>
+												<Typography variant='body1' color='textPrimary'>
+													{user?.email}
+												</Typography>
+											</Box>
+										</Box>
+									</Grid>
+
+									{/* Phone */}
+									<Grid item xs={12} sm={6}>
+										<Box display='flex' alignItems='center'>
+											<Avatar alt='Phone Icon' sx={{ bgcolor: "#4caf50", mr: 2 }}>
+												<Phone />
+											</Avatar>
+											<Box>
+												<Typography variant='body2' color='textSecondary'>
+													<strong>Phone</strong>
+												</Typography>
+												<Typography variant='body1' color='textPrimary'>
+													{user?.phoneNumber || "N/A"}
+												</Typography>
+											</Box>
+										</Box>
+									</Grid>
+
+									{/* Gender */}
+									<Grid item xs={12} sm={6}>
+										<Box display='flex' alignItems='center'>
+											<Avatar alt='Gender Icon' sx={{ bgcolor: "#ffd08a", mr: 2 }}>
+												{(user?.gender as string) === "male" ? (
+													<MaleIcon sx={{ color: "#2196F3", fontSize: 30 }} />
+												) : (
+													<FemaleIcon sx={{ color: "#E91E63", fontSize: 30 }} />
+												)}
+											</Avatar>
+											<Box>
+												<Typography variant='body2' color='textSecondary'>
+													<strong>Gender</strong>
+												</Typography>
+												<Typography variant='body1' color='textPrimary'>
+													{(user?.gender as string) === "male" ? "Male" : "Female"}
+												</Typography>
+											</Box>
+										</Box>
+									</Grid>
+
+									{/* Date of Birth */}
+									<Grid item xs={12} sm={6}>
+										<Box display='flex' alignItems='center'>
+											<Avatar alt='DOB Icon' sx={{ bgcolor: "#9c27b0", mr: 2 }}>
+												<CalendarToday />
+											</Avatar>
+											<Box>
+												<Typography variant='body2' color='textSecondary'>
+													<strong>Date of Birth</strong>
+												</Typography>
+												<Typography variant='body1' color='textPrimary'>
+													{user?.dateOfBirth ? user.dateOfBirth.toLocaleDateString() : "N/A"}
+												</Typography>
+											</Box>
+										</Box>
+									</Grid>
+								</Grid>
 							</Box>
-						) : (
-							<PhotosSection
-								isCurrentUserProfile={isCurrentUserProfile}
-								uploadedPictures={uploadedPictures}
-								reloadUserData={reloadUserData}
-							/>
-						)}
-					</Paper>
 
-					{/* Friends List Section */}
-					<Box sx={{ mb: 6, width: "100%" }}>
-						<UserList fetchFriends userId={id} />
-					</Box>
+							{/* About Me Section */}
+							<Box
+								sx={{
+									p: 3,
+									width: "100%",
+									borderRadius: 4,
+									boxShadow: "0px 4px 20px rgba(0, 0, 0, 0.1)",
+									mb: 4,
+								}}
+							>
+								<Box display='flex' justifyContent='space-between' alignItems='center' mb={2}>
+									<Box display='flex' alignItems='center'>
+										<Avatar sx={{ bgcolor: "#ff7043", mr: 2 }}>
+											<Info />
+										</Avatar>
+										<Typography variant='h6' fontWeight='bold' color='textPrimary'>
+											About Me
+										</Typography>
+									</Box>
+
+									{isCurrentUserProfile && (
+										<IconButton onClick={() => setEditModalOpen(true)} size='large'>
+											<EditIcon />
+										</IconButton>
+									)}
+								</Box>
+
+								<Typography variant='body1' color='textPrimary' mt={2} sx={{ whiteSpace: "pre-wrap" }}>
+									{user?.aboutMe || (
+										<Typography variant='body2' color='textSecondary' fontStyle='italic'>
+											No information provided.
+										</Typography>
+									)}
+								</Typography>
+							</Box>
+						</>
+					)}
+				</Box>
+
+				{/* Photos Section with separate photosLoading spinner */}
+				<Paper elevation={3} sx={{ mt: 3, p: 3, width: "100%", borderRadius: 4, boxShadow: 3 }}>
+					{photosLoading ? (
+						<Box display='flex' justifyContent='center' alignItems='center' minHeight='30vh'>
+							<CircularProgress />
+						</Box>
+					) : (
+						<PhotosSection
+							isCurrentUserProfile={isCurrentUserProfile}
+							uploadedPictures={uploadedPictures}
+							reloadUserData={reloadUserData}
+						/>
+					)}
+				</Paper>
+
+				{/* Friends List Section */}
+				<Box sx={{ mb: 6, width: "100%" }}>
+					<UserList fetchFriends userId={id} />
 				</Box>
 
 				{/* Modals */}
@@ -649,6 +788,8 @@ const UserProfilePage: React.FC = () => {
 							</Button>
 							<Button
 								onClick={handleProfileUpdate}
+								disabled={updateProfileLoading}
+								startIcon={updateProfileLoading ? <CircularProgress size={24} /> : <SaveIcon />}
 								sx={{
 									marginBottom: "1.5rem",
 									padding: "10px 20px",
@@ -665,10 +806,8 @@ const UserProfilePage: React.FC = () => {
 										color: "rgba(255, 255, 255, 0.7)",
 									},
 								}}
-								variant='contained'
-								color='primary'
 							>
-								Save
+								{updateProfileLoading ? "Saving..." : "Save"}
 							</Button>
 						</Box>
 					</Box>
@@ -697,7 +836,8 @@ const UserProfilePage: React.FC = () => {
 							<Button
 								variant='contained'
 								component='span'
-								startIcon={<CloudUploadIcon />}
+								startIcon={profilePictureLoading ? <CircularProgress size={24} /> : <CloudUploadIcon />}
+								disabled={profilePictureLoading}
 								sx={{
 									background:
 										"linear-gradient(45deg, rgba(255,64,129,1) 0%, rgba(255,105,135,1) 100%)",
@@ -710,7 +850,7 @@ const UserProfilePage: React.FC = () => {
 									},
 								}}
 							>
-								Upload New Picture
+								{profilePictureLoading ? "Uploading..." : "Upload New Picture"}
 							</Button>
 						</label>
 
@@ -904,9 +1044,9 @@ const UserProfilePage: React.FC = () => {
 						{newPhotoFile && (
 							<Button
 								variant='contained'
-								color='primary'
-								startIcon={<SaveIcon />}
+								startIcon={uploadLoading ? <CircularProgress size={24} /> : <SaveIcon />}
 								onClick={handleNewPhotoUpload}
+								disabled={uploadLoading}
 								sx={{
 									background:
 										"linear-gradient(45deg, rgba(255,64,129,1) 0%, rgba(255,105,135,1) 100%)",
@@ -919,7 +1059,7 @@ const UserProfilePage: React.FC = () => {
 									},
 								}}
 							>
-								Upload Photo
+								{uploadLoading ? "Uploading..." : "Upload Photo"}
 							</Button>
 						)}
 					</Box>

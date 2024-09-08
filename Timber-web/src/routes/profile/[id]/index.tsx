@@ -32,12 +32,15 @@ import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import dayjs from "dayjs";
 import React, { useState, ChangeEvent, useEffect } from "react";
 import toast, { Toaster } from "react-hot-toast";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 
 import PhotosSection from "./components/PhotoSection";
 import UserList from "../../../components/Lists/UsersList";
+import AppRoutes from "../../../constants/Enums/AppRoutes";
+import { Gender } from "../../../constants/Enums/Gender";
 import NotificationType from "../../../constants/Enums/NotificationType";
 import { calculateAge, UserDataModel } from "../../../constants/Models/UserDataModel";
+import getChatId from "../../../constants/Utils/getChatId";
 import { useAuth } from "../../../context/AuthenticationContext";
 import {
 	useCreateNotification,
@@ -51,11 +54,11 @@ import {
 	useCheckFriendRequest,
 	useDeleteNotification,
 } from "../../../hooks";
-import { Gender } from "../../../constants/Enums/Gender";
 
 const UserProfilePage: React.FC = () => {
 	const { id } = useParams<{ id: string }>();
 	const { currentUser, userData, setUserData } = useAuth();
+	const navigate = useNavigate();
 
 	const { user, loading: userLoading, error: userError, fetchUser } = useGetUser({ userId: id as string });
 	const {
@@ -579,6 +582,17 @@ const UserProfilePage: React.FC = () => {
 										backgroundColor: "rgba(255, 64, 129, 0.1)",
 										borderColor: "#ff4081",
 									},
+								}}
+								onClick={() => {
+									navigate(
+										AppRoutes.Chat.replace(
+											":id",
+											getChatId(currentUser?.uid as string, id as string),
+										),
+										{
+											state: { recipient: user },
+										},
+									);
 								}}
 							>
 								Send Message

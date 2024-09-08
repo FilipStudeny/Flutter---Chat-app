@@ -2,9 +2,11 @@ import { AttachFile, Send } from "@mui/icons-material";
 import { Box, TextField, Button, IconButton, Avatar, Typography, Dialog, Backdrop } from "@mui/material";
 import { formatDistanceToNow } from "date-fns";
 import React, { useState, useEffect, useRef } from "react";
-import { useParams } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 
+import { UserDataModel, calculateAge, getFullName, genderToString } from "../../../constants/Models/UserDataModel";
 import { useAuth } from "../../../context/AuthenticationContext";
+import useSendMessage from "../../../hooks/useSendMessage";
 
 interface Message {
 	id: string;
@@ -16,20 +18,35 @@ interface Message {
 	isImage?: boolean;
 }
 
+interface ChatRouteState {
+	recipient: UserDataModel;
+}
+
 const ChatDetailPage: React.FC = () => {
-	const { id } = useParams<{ id: string }>();
-	const { currentUser } = useAuth();
+	// Get recipient information from location state
+	const location = useLocation();
+	const state = location.state as ChatRouteState;
+	const { recipient } = state;
+
+	const { currentUser, userData } = useAuth();
 	const [messages, setMessages] = useState<Message[]>([]);
 	const [newMessage, setNewMessage] = useState<string>("");
 	const [selectedFile, setSelectedFile] = useState<File | null>(null);
 	const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
 	const messageEndRef = useRef<HTMLDivElement>(null);
 
+	// Use useSendMessage hook to send messages
+	const { sendMessageToUser, loading } = useSendMessage({
+		sender: userData as UserDataModel,
+		recipient, // Pass the correct recipient data
+	});
+
 	const scrollToBottom = () => {
 		messageEndRef.current?.scrollIntoView({ behavior: "smooth" });
 	};
 
 	useEffect(() => {
+		// Simulated initial fetch of messages
 		const fetchedMessages: Message[] = [
 			{
 				id: "1",
@@ -46,9 +63,9 @@ const ChatDetailPage: React.FC = () => {
 		];
 		setMessages(fetchedMessages);
 		scrollToBottom();
-	}, [id, currentUser]);
+	}, [currentUser]);
 
-	const handleSendMessage = () => {
+	const handleSendMessage = async () => {
 		if (newMessage.trim() === "" && !selectedFile) return;
 
 		const isImage = selectedFile ? selectedFile.type.startsWith("image/") : false;
@@ -63,6 +80,10 @@ const ChatDetailPage: React.FC = () => {
 			isImage,
 		};
 
+		// Call sendMessageToUser from the useSendMessage hook
+		await sendMessageToUser(newMessage);
+
+		// Append message locally to the chat
 		setMessages((prevMessages) => [...prevMessages, newMessageObj]);
 		setNewMessage("");
 		setSelectedFile(null);
@@ -84,8 +105,18 @@ const ChatDetailPage: React.FC = () => {
 		setImagePreviewUrl(null);
 	};
 
+	// Get recipient details
+	const recipientName = getFullName(recipient);
+	const recipientAge = calculateAge(recipient.dateOfBirth);
+	const recipientGender = recipient.gender ? genderToString(recipient.gender) : "Not specified";
+
+	// Function to render chat bubbles
 	const renderChatBubble = (message: Message) => {
 		const isSender = message.senderId === currentUser?.uid;
+
+		// Show recipient's name, age, and gender in the chat bubbles when they send a message
+		const displayName = isSender ? "You" : `${recipientName} (${recipientAge}, ${recipientGender})`;
+
 		return (
 			<Box
 				sx={{
@@ -101,8 +132,9 @@ const ChatDetailPage: React.FC = () => {
 						mr: isSender ? 0 : 2,
 						ml: isSender ? 2 : 0,
 					}}
+					src={isSender ? (currentUser?.photoURL as string) : (recipient.profilePictureUrl as string)}
 				>
-					{isSender ? "You" : "U"}
+					{!isSender && recipientName.charAt(0)}
 				</Avatar>
 				<Box
 					sx={{
@@ -114,6 +146,9 @@ const ChatDetailPage: React.FC = () => {
 						boxShadow: "0px 4px 8px rgba(0,0,0,0.1)",
 					}}
 				>
+					<Typography variant='body1' sx={{ fontWeight: "bold" }}>
+						{displayName}
+					</Typography>
 					<Typography variant='body1'>{message.text}</Typography>
 					{message.isImage && message.fileUrl && (
 						<Box
@@ -144,6 +179,10 @@ const ChatDetailPage: React.FC = () => {
 		);
 	};
 
+	if (!recipient) {
+		return <Typography variant='h5'>No recipient data available</Typography>;
+	}
+
 	return (
 		<Box
 			display='flex'
@@ -155,7 +194,7 @@ const ChatDetailPage: React.FC = () => {
 				overflow: "visible",
 			}}
 		>
-			{/* Chat Title Integrated into List */}
+			{/* Chat Title */}
 			<Box
 				sx={{
 					background: "linear-gradient(45deg, rgba(255,64,129,1) 0%, rgba(255,105,135,1) 100%)",
@@ -163,14 +202,25 @@ const ChatDetailPage: React.FC = () => {
 					boxShadow: "0px 4px 12px rgba(0, 0, 0, 0.1)",
 					padding: "16px",
 					paddingTop: "8px",
-					textAlign: "center",
 					color: "white",
 					borderBottom: "1px solid rgba(255,255,255,0.1)",
 				}}
 			>
-				<Typography variant='h5' fontWeight='bold'>
-					Chat with User {id}
-				</Typography>
+				<Box
+					sx={{
+						display: "flex",
+						alignItems: "center", // Vertically center the avatar and text
+						justifyContent: "center", // Center the entire box
+					}}
+				>
+					<Avatar
+						src={recipient.profilePictureUrl ?? undefined}
+						sx={{ width: 56, height: 56, mr: 2 }} // Added margin-right to separate the avatar from the title
+					/>
+					<Typography variant='h5' fontWeight='bold'>
+						Chat with {recipientName}
+					</Typography>
+				</Box>
 			</Box>
 
 			{/* Chat Messages Section */}
@@ -217,8 +267,14 @@ const ChatDetailPage: React.FC = () => {
 					placeholder='Type a message...'
 					sx={{ marginLeft: 2, marginRight: 2 }}
 				/>
-				<Button variant='contained' color='primary' endIcon={<Send />} onClick={handleSendMessage}>
-					Send
+				<Button
+					variant='contained'
+					color='primary'
+					endIcon={<Send />}
+					onClick={handleSendMessage}
+					disabled={loading}
+				>
+					{loading ? "Sending..." : "Send"}
 				</Button>
 			</Box>
 

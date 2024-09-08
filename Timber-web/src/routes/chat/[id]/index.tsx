@@ -1,5 +1,5 @@
 import { AttachFile, Send } from "@mui/icons-material";
-import { Box, TextField, Button, IconButton, Avatar, Typography, Stack } from "@mui/material";
+import { Box, TextField, Button, IconButton, Avatar, Typography, Dialog, Backdrop } from "@mui/material";
 import { formatDistanceToNow } from "date-fns";
 import React, { useState, useEffect, useRef } from "react";
 import { useParams } from "react-router-dom";
@@ -13,60 +13,60 @@ interface Message {
 	timestamp: Date;
 	fileUrl?: string;
 	fileName?: string;
+	isImage?: boolean;
 }
 
 const ChatDetailPage: React.FC = () => {
-	const { id } = useParams<{ id: string }>(); // Chat ID
+	const { id } = useParams<{ id: string }>();
 	const { currentUser } = useAuth();
-	const [messages, setMessages] = useState<Message[]>([]); // Array to hold messages
-	const [newMessage, setNewMessage] = useState<string>(""); // New message text
-	const [selectedFile, setSelectedFile] = useState<File | null>(null); // File upload state
+	const [messages, setMessages] = useState<Message[]>([]);
+	const [newMessage, setNewMessage] = useState<string>("");
+	const [selectedFile, setSelectedFile] = useState<File | null>(null);
+	const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
 	const messageEndRef = useRef<HTMLDivElement>(null);
 
-	// Function to scroll to the latest message
 	const scrollToBottom = () => {
 		messageEndRef.current?.scrollIntoView({ behavior: "smooth" });
 	};
 
 	useEffect(() => {
-		// Load messages from server based on chat ID (in a real app, use a backend API)
-		// Here we just use fake data for demonstration
 		const fetchedMessages: Message[] = [
 			{
 				id: "1",
 				text: "Hey! How are you?",
-				senderId: "123", // Assume this is the recipient
+				senderId: "123",
 				timestamp: new Date(),
 			},
 			{
 				id: "2",
 				text: "I'm good! How about you?",
-				senderId: currentUser?.uid || "456", // Current user (sender)
+				senderId: currentUser?.uid || "456",
 				timestamp: new Date(),
 			},
-			// Add more fake messages if needed
 		];
 		setMessages(fetchedMessages);
 		scrollToBottom();
 	}, [id, currentUser]);
 
 	const handleSendMessage = () => {
-		if (newMessage.trim() === "" && !selectedFile) return; // Don't send empty messages
+		if (newMessage.trim() === "" && !selectedFile) return;
 
-		// Create a new message object
+		const isImage = selectedFile ? selectedFile.type.startsWith("image/") : false;
+
 		const newMessageObj: Message = {
-			id: Date.now().toString(), // Unique ID based on timestamp
+			id: Date.now().toString(),
 			text: newMessage,
 			senderId: currentUser?.uid || "",
 			timestamp: new Date(),
 			fileUrl: selectedFile ? URL.createObjectURL(selectedFile) : undefined,
 			fileName: selectedFile?.name,
+			isImage,
 		};
 
 		setMessages((prevMessages) => [...prevMessages, newMessageObj]);
 		setNewMessage("");
 		setSelectedFile(null);
-		scrollToBottom(); // Scroll to the latest message
+		scrollToBottom();
 	};
 
 	const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -76,24 +76,96 @@ const ChatDetailPage: React.FC = () => {
 		}
 	};
 
+	const handleImageClick = (imageUrl: string) => {
+		setImagePreviewUrl(imageUrl);
+	};
+
+	const handleCloseImagePreview = () => {
+		setImagePreviewUrl(null);
+	};
+
+	const renderChatBubble = (message: Message) => {
+		const isSender = message.senderId === currentUser?.uid;
+		return (
+			<Box
+				sx={{
+					display: "flex",
+					flexDirection: isSender ? "row-reverse" : "row",
+					alignItems: "flex-end",
+					mb: 2,
+				}}
+			>
+				<Avatar
+					sx={{
+						bgcolor: isSender ? "#ff4081" : "grey",
+						mr: isSender ? 0 : 2,
+						ml: isSender ? 2 : 0,
+					}}
+				>
+					{isSender ? "You" : "U"}
+				</Avatar>
+				<Box
+					sx={{
+						backgroundColor: isSender ? "#ff4081" : "#f0f0f0",
+						color: isSender ? "white" : "black",
+						padding: 2,
+						borderRadius: "12px",
+						maxWidth: "70%",
+						boxShadow: "0px 4px 8px rgba(0,0,0,0.1)",
+					}}
+				>
+					<Typography variant='body1'>{message.text}</Typography>
+					{message.isImage && message.fileUrl && (
+						<Box
+							component='img'
+							src={message.fileUrl}
+							alt={message.fileName}
+							sx={{
+								width: "auto",
+								maxWidth: "100%",
+								maxHeight: "200px",
+								borderRadius: "8px",
+								cursor: "pointer",
+								"&:hover": {
+									opacity: 0.9,
+								},
+							}}
+							onClick={() => handleImageClick(message.fileUrl as string)}
+						/>
+					)}
+					<Typography
+						variant='caption'
+						sx={{ display: "block", mt: 1, textAlign: isSender ? "right" : "left" }}
+					>
+						{formatDistanceToNow(message.timestamp, { addSuffix: true })}
+					</Typography>
+				</Box>
+			</Box>
+		);
+	};
+
 	return (
 		<Box
 			display='flex'
 			flexDirection='column'
-			justifyContent='space-between'
-			height='100vh'
-			p={2}
+			minHeight='100vh'
 			maxWidth='800px'
 			mx='auto'
+			sx={{
+				overflow: "visible",
+			}}
 		>
-			{/* Chat Header */}
+			{/* Chat Title Integrated into List */}
 			<Box
 				sx={{
-					backgroundColor: "linear-gradient(45deg, rgba(255,64,129,1) 0%, rgba(255,105,135,1) 100%)",
-					padding: 2,
-					borderRadius: "10px",
+					background: "linear-gradient(45deg, rgba(255,64,129,1) 0%, rgba(255,105,135,1) 100%)",
+					borderRadius: "10px 10px 0 0",
+					boxShadow: "0px 4px 12px rgba(0, 0, 0, 0.1)",
+					padding: "16px",
+					paddingTop: "8px",
+					textAlign: "center",
 					color: "white",
-					marginBottom: 2,
+					borderBottom: "1px solid rgba(255,255,255,0.1)",
 				}}
 			>
 				<Typography variant='h5' fontWeight='bold'>
@@ -105,63 +177,34 @@ const ChatDetailPage: React.FC = () => {
 			<Box
 				flexGrow={1}
 				sx={{
-					overflowY: "auto",
 					padding: 2,
-					backgroundColor: "#f5f5f5",
+					backgroundColor: "#f9f9f9",
 					borderRadius: "10px",
+					display: "flex",
+					flexDirection: "column",
+					flexWrap: "nowrap",
+					overflow: "visible",
 				}}
 			>
 				{messages.map((message) => (
-					<Box
-						key={message.id}
-						sx={{
-							display: "flex",
-							flexDirection: message.senderId === currentUser?.uid ? "row-reverse" : "row",
-							alignItems: "center",
-							mb: 2,
-						}}
-					>
-						<Avatar
-							sx={{
-								bgcolor: message.senderId === currentUser?.uid ? "#ff4081" : "grey",
-								mr: message.senderId === currentUser?.uid ? 0 : 2,
-								ml: message.senderId === currentUser?.uid ? 2 : 0,
-							}}
-						>
-							{message.senderId === currentUser?.uid ? "You" : "U"}
-						</Avatar>
-						<Stack
-							sx={{
-								backgroundColor: message.senderId === currentUser?.uid ? "#ff4081" : "white",
-								color: message.senderId === currentUser?.uid ? "white" : "black",
-								padding: 2,
-								borderRadius: "10px",
-								boxShadow: "0px 4px 8px rgba(0,0,0,0.1)",
-								maxWidth: "70%",
-							}}
-						>
-							<Typography variant='body1'>{message.text}</Typography>
-							{message.fileUrl && (
-								<Typography
-									component='a'
-									href={message.fileUrl}
-									download={message.fileName}
-									sx={{ color: "inherit", mt: 1 }}
-								>
-									Download {message.fileName}
-								</Typography>
-							)}
-							<Typography variant='caption' align='right'>
-								{formatDistanceToNow(message.timestamp, { addSuffix: true })}
-							</Typography>
-						</Stack>
-					</Box>
+					<React.Fragment key={message.id}>{renderChatBubble(message)}</React.Fragment>
 				))}
 				<div ref={messageEndRef} />
 			</Box>
 
 			{/* Message Input Section */}
-			<Box display='flex' alignItems='center' p={2} borderTop='1px solid #ddd'>
+			<Box
+				display='flex'
+				alignItems='center'
+				p={2}
+				borderTop='1px solid #ddd'
+				sx={{
+					position: "sticky",
+					bottom: "50px",
+					backgroundColor: "white",
+					zIndex: 1000,
+				}}
+			>
 				<IconButton component='label'>
 					<AttachFile />
 					<input type='file' hidden onChange={handleFileChange} />
@@ -178,6 +221,32 @@ const ChatDetailPage: React.FC = () => {
 					Send
 				</Button>
 			</Box>
+
+			{/* Image Preview Modal */}
+			<Dialog
+				open={!!imagePreviewUrl}
+				onClose={handleCloseImagePreview}
+				maxWidth='md'
+				PaperProps={{
+					style: {
+						backgroundColor: "transparent",
+						boxShadow: "none",
+					},
+				}}
+				BackdropComponent={Backdrop}
+				BackdropProps={{
+					style: {
+						backgroundColor: "rgba(0, 0, 0, 0.8)",
+					},
+				}}
+			>
+				<Box
+					component='img'
+					src={imagePreviewUrl || ""}
+					alt='Preview'
+					sx={{ width: "100%", maxHeight: "80vh", borderRadius: "8px" }}
+				/>
+			</Dialog>
 		</Box>
 	);
 };

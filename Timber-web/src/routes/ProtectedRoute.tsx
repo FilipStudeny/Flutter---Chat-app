@@ -1,16 +1,17 @@
-import React from 'react';
-import { Navigate, Outlet } from 'react-router-dom';
-import { useAuth } from '../context/AuthenticationContext';
-import { AppRoutes } from '../constants/Enums/AppRoutes';
+import React from "react";
+import { Navigate, Outlet } from "react-router-dom";
+
+import AppRoutes from "../constants/Enums/AppRoutes";
+import { useAuth } from "../context/AuthenticationContext";
 
 const ProtectedRoute: React.FC = () => {
-    const { currentUser } = useAuth();
+	const { currentUser } = useAuth();
 
-    if (!currentUser) {
-        return <Navigate to={`${AppRoutes.Welcome}`} />;
-    }
+	if (!currentUser) {
+		return <Navigate to={`${AppRoutes.Welcome}`} />;
+	}
 
-    return <Outlet />;
+	return <Outlet />;
 };
 
 export default ProtectedRoute;

@@ -21,6 +21,7 @@
     "@mui/x-date-pickers": "^7.12.1",
     "@types/react-easy-crop": "^2.0.0",
     "cropperjs": "^1.6.2",
+    "date-fns": "^3.6.0",
     "dayjs": "^1.11.12",
     "firebase": "^10.12.5",
     "react": "^18.3.1",

@@ -2,6 +2,8 @@ import { createBrowserRouter } from "react-router-dom";
 
 import ProtectedRoute from "./ProtectedRoute";
 import PublicRoute from "./PublicRoute";
+import ChatsPage from "./chat";
+import ChatDetailPage from "./chat/[id]";
 import ForgotPasswordPage from "./forgotton-password";
 import HomePage from "./home";
 import UserProfilePage from "./profile/[id]";
@@ -10,7 +12,7 @@ import LoginPage from "./sign-in";
 import RegisterPage from "./sign-up";
 import WelcomePage from "./welcome";
 import AppLayout from "../components/Layout/Layout";
-import { AppRoutes } from "../constants/Enums/AppRoutes";
+import AppRoutes from "../constants/Enums/AppRoutes";
 
 const routes = createBrowserRouter([
 	{
@@ -31,6 +33,8 @@ const routes = createBrowserRouter([
 					{ path: AppRoutes.Home, element: <HomePage /> },
 					{ path: AppRoutes.Profile, element: <UserProfilePage /> },
 					{ path: AppRoutes.Search, element: <SearchPage /> },
+					{ path: AppRoutes.Chats, element: <ChatsPage /> },
+					{ path: AppRoutes.Chat, element: <ChatDetailPage /> },
 				],
 			},
 		],

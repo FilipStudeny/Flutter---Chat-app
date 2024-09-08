@@ -1,4 +1,4 @@
-export enum AppRoutes {
+enum AppRoutes {
 	Welcome = "/",
 	Home = "/home",
 	SignIn = "/sign-in",
@@ -13,4 +13,7 @@ export enum AppRoutes {
 	Settings = "/settings",
 	ProfileSettings = "/profile/settings",
 	ForgottenPassword = "/forgoten-password",
+	Chat = "/chats/chat/:id",
 }
+
+export default AppRoutes;

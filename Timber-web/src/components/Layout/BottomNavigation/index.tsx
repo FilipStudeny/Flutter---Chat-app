@@ -3,7 +3,7 @@ import { BottomNavigation, BottomNavigationAction, Paper } from "@mui/material";
 import React from "react";
 import { useNavigate } from "react-router-dom";
 
-import { AppRoutes } from "../../../constants/Enums/AppRoutes";
+import AppRoutes from "../../../constants/Enums/AppRoutes";
 import { useAuth } from "../../../context/AuthenticationContext";
 
 const BottomNav: React.FC = () => {

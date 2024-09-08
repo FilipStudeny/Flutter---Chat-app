@@ -10,7 +10,7 @@ import { useNavigate } from "react-router-dom";
 import { Logo, LogoContainer, SignInButton, StyledLink, Title, RegisterContainer, StyledTextField } from "./styles";
 import GenderSelector from "../../components/form/GenderSelector";
 import { ImagePicker } from "../../components/form/ImageSelector";
-import { AppRoutes } from "../../constants/Enums/AppRoutes";
+import AppRoutes from "../../constants/Enums/AppRoutes";
 import { Gender } from "../../constants/Enums/Gender";
 import { UserDataModel } from "../../constants/Models/UserDataModel";
 import { useAuth } from "../../context/AuthenticationContext";

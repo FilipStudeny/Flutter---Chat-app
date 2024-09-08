@@ -24,9 +24,12 @@ const NotificationsList: React.FC<NotificationsListProps> = ({ separateFilter, u
 		fetchNotifications,
 	} = useNotificationsListFetch(userId);
 
+	const handleNotificationAction = () => {
+		fetchNotifications(true);
+	};
+
 	return (
 		<>
-			{/* Conditional Rendering of Filters */}
 			{separateFilter && (
 				<Box
 					sx={{
@@ -37,19 +40,18 @@ const NotificationsList: React.FC<NotificationsListProps> = ({ separateFilter, u
 						borderRadius: 2,
 						boxShadow: 3,
 						backgroundColor: "white",
-						margin: "0 auto", // Center the search section
+						margin: "0 auto",
 					}}
 				>
 					<SearchFilters
 						notificationType={notificationType}
 						setNotificationType={setNotificationType}
 						loading={loading}
-						fetchUsers={fetchNotifications} // Fetch notifications instead of users
+						fetchUsers={fetchNotifications}
 					/>
 				</Box>
 			)}
 
-			{/* Notifications List */}
 			<Box
 				sx={{
 					width: "100%",
@@ -75,14 +77,13 @@ const NotificationsList: React.FC<NotificationsListProps> = ({ separateFilter, u
 						Notifications
 					</Typography>
 
-					{/* Render Filters Inline if separateFilter is false */}
 					{!separateFilter && (
 						<Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
 							<SearchFilters
 								notificationType={notificationType}
 								setNotificationType={setNotificationType}
 								loading={loading}
-								fetchUsers={fetchNotifications} // Fetch notifications instead of users
+								fetchUsers={fetchNotifications}
 							/>
 						</Box>
 					)}
@@ -101,12 +102,14 @@ const NotificationsList: React.FC<NotificationsListProps> = ({ separateFilter, u
 						<Grid container spacing={3}>
 							{notifications.map((notification) => (
 								<Grid item xs={12} sm={6} md={4} key={notification.id}>
-									<NotificationCard notification={notification} />
+									<NotificationCard
+										notification={notification}
+										onNotificationAction={handleNotificationAction}
+									/>
 								</Grid>
 							))}
 						</Grid>
 
-						{/* Load More Button */}
 						{hasMore && (
 							<Box sx={{ display: "flex", justifyContent: "center", mt: 3 }}>
 								<StyledButton onClick={handleLoadMore} disabled={loading}>
@@ -115,7 +118,6 @@ const NotificationsList: React.FC<NotificationsListProps> = ({ separateFilter, u
 							</Box>
 						)}
 
-						{/* No More Notifications Message */}
 						{!hasMore && notifications.length > 0 && (
 							<Typography variant='body2' align='center' color='textSecondary' sx={{ mt: 2 }}>
 								No more notifications found.
@@ -124,7 +126,6 @@ const NotificationsList: React.FC<NotificationsListProps> = ({ separateFilter, u
 					</>
 				)}
 
-				{/* Error Message */}
 				{error && (
 					<Typography variant='body2' align='center' color='error'>
 						{error}

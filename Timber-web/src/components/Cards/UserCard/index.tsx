@@ -38,13 +38,7 @@ const UserCard: React.FC<UserCardProps> = ({ user }) => {
 	const { currentUser, userData, setUserData } = useAuth();
 	const navigate = useNavigate();
 
-	const {
-		removeFriendAction,
-		loading: removeFriendLoading,
-		error: removeFriendError,
-		success: removeFriendSuccess,
-	} = useRemoveFriend();
-
+	const { removeFriendAction, loading: removeFriendLoading, error: removeFriendError } = useRemoveFriend();
 	const { sendNotification, loading: notificationLoading, error: notificationError } = useCreateNotification();
 	const {
 		checkNotification,
@@ -80,13 +74,11 @@ const UserCard: React.FC<UserCardProps> = ({ user }) => {
 
 	const handleToggleFriend = async () => {
 		if (currentUser?.uid && user?.uid) {
-			// If the user is already a friend, open the confirmation modal
 			if (isFriend) {
 				setConfirmRemoveFriendOpen(true);
-				return; // Stop further execution, we want to show the modal first
+				return;
 			}
 
-			// Proceed with sending a friend request if not a friend
 			const message = `${currentUser.displayName} has sent you a friend request.`;
 			const notificationExists = await checkNotification();
 
@@ -102,21 +94,20 @@ const UserCard: React.FC<UserCardProps> = ({ user }) => {
 				return;
 			}
 
-			await sendNotification(currentUser.uid, user.uid, message, NotificationType.FRIEND_REQUEST);
-			if (!notificationError) {
+			try {
+				await sendNotification(currentUser.uid, user.uid, message, NotificationType.FRIEND_REQUEST);
 				toast.success("Friend request sent successfully.");
 				await checkNotification();
-			} else {
-				toast.error(notificationError);
+			} catch (error) {
+				toast.error(notificationError || "Failed to send friend request.");
 			}
 		}
 	};
 
 	const handleConfirmRemoveFriend = async () => {
 		if (currentUser?.uid && user?.uid) {
-			await removeFriendAction(currentUser.uid, user.uid);
-			if (removeFriendSuccess) {
-				toast.success("Friend removed successfully.");
+			try {
+				await removeFriendAction(currentUser.uid, user.uid);
 
 				if (notificationId) {
 					const response = await deleteNotificationById(user.uid, notificationId);
@@ -135,10 +126,11 @@ const UserCard: React.FC<UserCardProps> = ({ user }) => {
 					});
 				}
 
-				handleCloseRemoveFriendModal();
+				toast.success("Friend removed successfully.");
 				setIsFriend(false);
-			} else if (removeFriendError) {
-				toast.error(removeFriendError);
+				handleCloseRemoveFriendModal();
+			} catch (error) {
+				toast.error(removeFriendError || "Failed to remove friend.");
 			}
 		}
 	};

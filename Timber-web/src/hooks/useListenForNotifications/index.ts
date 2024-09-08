@@ -36,18 +36,15 @@ const useListenForNotifications = ({ userId, notificationType = "" }: GetNotific
 				mapFirestoreDocToUserNotification({ ...doc.data(), id: doc.id }),
 			);
 
-			// Update unread count based on notifications that are not read
 			const unreadNotifications = notificationsData.filter((notification) => !notification.read);
 			setUnreadCount(unreadNotifications.length);
 
-			// Show all notifications (both read and unread)
-			setNotifications(notificationsData.slice(0, 5)); // Only show the most recent 5
+			setNotifications(notificationsData.slice(0, 5));
 		});
 
 		return () => unsubscribe();
 	}, [userId, notificationType]);
 
-	// Function to mark all notifications as read
 	const markAllAsRead = async () => {
 		const db: Firestore = FirebaseFireStore;
 		notifications.forEach(async (notification) => {
@@ -56,7 +53,7 @@ const useListenForNotifications = ({ userId, notificationType = "" }: GetNotific
 				await updateDoc(notificationRef, { read: true });
 			}
 		});
-		setUnreadCount(0); // Set unread count to 0 after marking all as read
+		setUnreadCount(0);
 	};
 
 	const removeNotificationFromList = (notificationId: string) => {

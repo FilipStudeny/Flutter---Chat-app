@@ -51,6 +51,7 @@ import {
 	useCheckFriendRequest,
 	useDeleteNotification,
 } from "../../../hooks";
+import { Gender } from "../../../constants/Enums/Gender";
 
 const UserProfilePage: React.FC = () => {
 	const { id } = useParams<{ id: string }>();
@@ -687,7 +688,7 @@ const UserProfilePage: React.FC = () => {
 									<Grid item xs={12} sm={6}>
 										<Box display='flex' alignItems='center'>
 											<Avatar alt='Gender Icon' sx={{ bgcolor: "#ffd08a", mr: 2 }}>
-												{(user?.gender as string) === "male" ? (
+												{(user?.gender as string) === Gender.Male ? (
 													<MaleIcon sx={{ color: "#2196F3", fontSize: 30 }} />
 												) : (
 													<FemaleIcon sx={{ color: "#E91E63", fontSize: 30 }} />
@@ -698,7 +699,7 @@ const UserProfilePage: React.FC = () => {
 													<strong>Gender</strong>
 												</Typography>
 												<Typography variant='body1' color='textPrimary'>
-													{(user?.gender as string) === "male" ? "Male" : "Female"}
+													{(user?.gender as string) === Gender.Male ? "Male" : "Female"}
 												</Typography>
 											</Box>
 										</Box>

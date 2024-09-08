@@ -17,17 +17,11 @@ interface NotificationDisplayProps {
 const NotificationDisplay: React.FC<NotificationDisplayProps> = ({ userId }) => {
 	const { notifications, unreadCount, clearNotifications, markAllAsRead, removeNotificationFromList } =
 		useListenForNotifications({ userId });
-	const {
-		addFriendToUser,
-		loading: addFriendLoading,
-		error: addFriendError,
-		success: addFriendSuccess,
-	} = useAddFriend();
+	const { addFriendToUser, loading: addFriendLoading, error: addFriendError } = useAddFriend();
 	const {
 		deleteNotificationById,
 		loading: deleteNotificationLoading,
 		error: deleteNotificationError,
-		success: deleteNotificationSuccess,
 	} = useDeleteNotification();
 	const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 	const [timer, setTimer] = useState<NodeJS.Timeout | null>(null);
@@ -84,23 +78,22 @@ const NotificationDisplay: React.FC<NotificationDisplayProps> = ({ userId }) => 
 	}, [open]);
 
 	const handleDeleteNotification = async (notificationId: string) => {
-		await deleteNotificationById(userId, notificationId);
-
-		if (deleteNotificationSuccess) {
+		try {
+			await deleteNotificationById(userId, notificationId);
 			toast.success("Notification deleted successfully!");
 			removeNotificationFromList(notificationId);
-		} else if (deleteNotificationError) {
+		} catch (error) {
 			toast.error(deleteNotificationError || "Failed to delete notification.");
 		}
 	};
 
 	const handleAcceptFriendRequest = async (notificationId: string, senderId: string) => {
-		await addFriendToUser(userId, senderId);
-
-		if (addFriendSuccess) {
+		try {
+			await addFriendToUser(userId, senderId);
+			await deleteNotificationById(userId, notificationId);
 			toast.success("Friend request accepted!");
 			removeNotificationFromList(notificationId);
-		} else if (addFriendError) {
+		} catch (error) {
 			toast.error(addFriendError || "Failed to accept friend request.");
 		}
 	};

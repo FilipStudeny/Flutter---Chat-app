@@ -6,6 +6,7 @@ import { useNavigate } from "react-router-dom";
 
 import NotificationType from "../../../../constants/Enums/NotificationType";
 import UserNotification from "../../../../constants/Models/UserNotification";
+import { useAuth } from "../../../../context/AuthenticationContext";
 import useAddFriend from "../../../../hooks/useAddFriend";
 import useDeleteNotification from "../../../../hooks/useDeleteNotification";
 import useListenForNotifications from "../../../../hooks/useListenForNotifications";
@@ -27,6 +28,7 @@ const NotificationDisplay: React.FC<NotificationDisplayProps> = ({ userId }) => 
 	const [timer, setTimer] = useState<NodeJS.Timeout | null>(null);
 	const [progress, setProgress] = useState<number>(0);
 	const navigate = useNavigate();
+	const { userData, refetchFriends } = useAuth();
 
 	const handleClick = (event: React.MouseEvent<HTMLElement>) => {
 		setAnchorEl(event.currentTarget);
@@ -91,6 +93,9 @@ const NotificationDisplay: React.FC<NotificationDisplayProps> = ({ userId }) => 
 		try {
 			await addFriendToUser(userId, senderId);
 			await deleteNotificationById(userId, notificationId);
+			await refetchFriends();
+
+			console.log(userData);
 			toast.success("Friend request accepted!");
 			removeNotificationFromList(notificationId);
 		} catch (error) {

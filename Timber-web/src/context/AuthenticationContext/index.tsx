@@ -17,6 +17,7 @@ import { FirebaseAuth } from "../../firebase";
 import createUser from "../../services/DatabaseService/createUser";
 import getUser from "../../services/DatabaseService/getUser";
 import { uploadFile } from "../../services/FileStorageService/uploadFile";
+import fetchFriends from "../../services/DatabaseService/fetchFriends";
 
 interface AuthResponse {
 	success: boolean;
@@ -34,6 +35,7 @@ interface AuthenticationContextType {
 	updateUserPassword: (password: string) => Promise<AuthResponse>;
 	userData: UserDataModel | null;
 	setUserData: React.Dispatch<React.SetStateAction<UserDataModel | null>>;
+	refetchFriends: () => Promise<void>;
 }
 
 const AuthenticationContext = createContext<AuthenticationContextType | null>(null);
@@ -82,6 +84,17 @@ export const AuthenticationProvider: FC<AuthenticationProviderProps> = ({ childr
 
 		return () => unsubscribe();
 	}, [database]);
+
+	const refetchFriends = async () => {
+		if (!currentUser) return; // Ensure user is authenticated
+		const friendsResponse = await fetchFriends(currentUser.uid); // Fetch friends list
+		if (friendsResponse.success && friendsResponse.data) {
+			setUserData((prevUserData) => ({
+				...prevUserData,
+				friends: friendsResponse.data, // Update the friends array
+			}));
+		}
+	};
 
 	const login = async (email: string, password: string): Promise<AuthResponse> => {
 		try {
@@ -203,8 +216,9 @@ export const AuthenticationProvider: FC<AuthenticationProviderProps> = ({ childr
 			updateUserEmail,
 			userData,
 			setUserData,
+			refetchFriends,
 		}),
-		[currentUser, userData], // Dependencies for useMemo
+		[currentUser, userData],
 	);
 
 	return <AuthenticationContext.Provider value={value}>{!isLoading && children}</AuthenticationContext.Provider>;

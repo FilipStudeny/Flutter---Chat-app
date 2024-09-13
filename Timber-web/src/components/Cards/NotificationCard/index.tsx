@@ -15,7 +15,7 @@ interface NotificationCardProps {
 }
 
 const NotificationCard: React.FC<NotificationCardProps> = ({ notification, onNotificationAction }) => {
-	const { currentUser } = useAuth();
+	const { currentUser, refetchFriends } = useAuth();
 	const { addFriendToUser, loading: addFriendLoading, error: addFriendError } = useAddFriend();
 	const {
 		deleteNotificationById,
@@ -29,6 +29,7 @@ const NotificationCard: React.FC<NotificationCardProps> = ({ notification, onNot
 		try {
 			await addFriendToUser(currentUser.uid, notification.senderId);
 			await deleteNotificationById(currentUser.uid, notification.id);
+			await refetchFriends();
 			toast.success("Friend request accepted!");
 			onNotificationAction();
 		} catch (error) {

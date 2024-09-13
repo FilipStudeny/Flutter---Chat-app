@@ -57,7 +57,7 @@ import {
 
 const UserProfilePage: React.FC = () => {
 	const { id } = useParams<{ id: string }>();
-	const { currentUser, userData, setUserData } = useAuth();
+	const { currentUser, userData, setUserData, refetchFriends } = useAuth();
 	const navigate = useNavigate();
 
 	const { user, loading: userLoading, error: userError, fetchUser } = useGetUser({ userId: id as string });
@@ -329,6 +329,7 @@ const UserProfilePage: React.FC = () => {
 				if (removeFriendError) {
 					toast.error(removeFriendError);
 				}
+				await refetchFriends();
 			} else {
 				await sendNotification(currentUser.uid, user.uid, message, NotificationType.FRIEND_REQUEST);
 				if (!notificationError) {
@@ -365,13 +366,7 @@ const UserProfilePage: React.FC = () => {
 					}
 				}
 
-				if (userData) {
-					const updatedFriends = userData.friends?.filter((friendId) => friendId !== user.uid) || [];
-					setUserData({
-						...userData,
-						friends: updatedFriends,
-					});
-				}
+				await refetchFriends();
 
 				handleCloseRemoveFriendModal();
 			} else if (removeFriendError) {

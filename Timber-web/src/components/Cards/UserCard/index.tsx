@@ -35,7 +35,7 @@ interface UserCardProps {
 }
 
 const UserCard: React.FC<UserCardProps> = ({ user }) => {
-	const { currentUser, userData, setUserData } = useAuth();
+	const { currentUser, userData, refetchFriends } = useAuth();
 	const navigate = useNavigate();
 
 	const { removeFriendAction, loading: removeFriendLoading, error: removeFriendError } = useRemoveFriend();
@@ -118,13 +118,7 @@ const UserCard: React.FC<UserCardProps> = ({ user }) => {
 					}
 				}
 
-				if (userData) {
-					const updatedFriends = userData.friends?.filter((friendId) => friendId !== user.uid) || [];
-					setUserData({
-						...userData,
-						friends: updatedFriends,
-					});
-				}
+				await refetchFriends();
 
 				toast.success("Friend removed successfully.");
 				setIsFriend(false);

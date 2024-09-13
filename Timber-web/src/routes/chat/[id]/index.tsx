@@ -1,5 +1,5 @@
 import { AttachFile, Send } from "@mui/icons-material";
-import { Box, TextField, Button, IconButton, Avatar, Typography, Dialog, Backdrop } from "@mui/material";
+import { Box, TextField, Button, IconButton, Avatar, Typography, Dialog } from "@mui/material";
 import { formatDistanceToNow } from "date-fns";
 import React, { useState, useEffect, useRef } from "react";
 import { useLocation } from "react-router-dom";
@@ -287,12 +287,6 @@ const ChatDetailPage: React.FC = () => {
 					style: {
 						backgroundColor: "transparent",
 						boxShadow: "none",
-					},
-				}}
-				BackdropComponent={Backdrop}
-				BackdropProps={{
-					style: {
-						backgroundColor: "rgba(0, 0, 0, 0.8)",
 					},
 				}}
 			>

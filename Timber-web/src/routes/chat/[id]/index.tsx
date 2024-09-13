@@ -1,11 +1,12 @@
 import { AttachFile, Send } from "@mui/icons-material";
-import { Box, TextField, Button, IconButton, Avatar, Typography, Dialog } from "@mui/material";
+import { Box, TextField, Button, IconButton, Avatar, Typography, Dialog, styled, Badge } from "@mui/material";
 import { formatDistanceToNow } from "date-fns";
 import React, { useState, useEffect, useRef } from "react";
 import { useLocation } from "react-router-dom";
 
 import { UserDataModel, calculateAge, getFullName, genderToString } from "../../../constants/Models/UserDataModel";
 import { useAuth } from "../../../context/AuthenticationContext";
+import useUserStatus from "../../../hooks/useGetUserStatus";
 import useSendMessage from "../../../hooks/useSendMessage";
 
 interface Message {
@@ -22,8 +23,38 @@ interface ChatRouteState {
 	recipient: UserDataModel;
 }
 
+const StyledBadge = styled(Badge)(({ theme }) => ({
+	"& .MuiBadge-badge": {
+		backgroundColor: "#44b700",
+		color: "#44b700",
+		boxShadow: `0 0 0 2px ${theme.palette.background.paper}`,
+		width: "12px",
+		height: "12px",
+		borderRadius: "50%",
+		"&::after": {
+			position: "absolute",
+			transform: "translate(-50%, -50%)",
+			width: "100%",
+			height: "100%",
+			borderRadius: "50%",
+			animation: "ripple 1.2s infinite ease-in-out",
+			border: "1px solid currentColor",
+			content: '""',
+		},
+	},
+	"@keyframes ripple": {
+		"0%": {
+			transform: "scale(.8)",
+			opacity: 1,
+		},
+		"100%": {
+			transform: "scale(2.4)",
+			opacity: 0,
+		},
+	},
+}));
+
 const ChatDetailPage: React.FC = () => {
-	// Get recipient information from location state
 	const location = useLocation();
 	const state = location.state as ChatRouteState;
 	const { recipient } = state;
@@ -35,11 +66,12 @@ const ChatDetailPage: React.FC = () => {
 	const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
 	const messageEndRef = useRef<HTMLDivElement>(null);
 
-	// Use useSendMessage hook to send messages
 	const { sendMessageToUser, loading } = useSendMessage({
 		sender: userData as UserDataModel,
-		recipient, // Pass the correct recipient data
+		recipient,
 	});
+
+	const { status, loading: statusLoading, error } = useUserStatus(recipient.uid as string);
 
 	const scrollToBottom = () => {
 		messageEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -209,17 +241,39 @@ const ChatDetailPage: React.FC = () => {
 				<Box
 					sx={{
 						display: "flex",
-						alignItems: "center", // Vertically center the avatar and text
-						justifyContent: "center", // Center the entire box
+						alignItems: "center",
+						justifyContent: "space-between", // This will space the avatar + name to the left and status to the right
 					}}
 				>
-					<Avatar
-						src={recipient.profilePictureUrl ?? undefined}
-						sx={{ width: 56, height: 56, mr: 2 }} // Added margin-right to separate the avatar from the title
-					/>
-					<Typography variant='h5' fontWeight='bold'>
-						Chat with {recipientName}
-					</Typography>
+					<Box sx={{ display: "flex", alignItems: "center" }}>
+						<StyledBadge
+							overlap='circular'
+							color={status?.online ? "success" : "error"}
+							anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+							variant='dot'
+						>
+							<Avatar alt='Remy Sharp' src={recipient.profilePictureUrl ?? undefined} />
+						</StyledBadge>
+
+						<Typography variant='h5' fontWeight='bold'>
+							Chat with {recipientName}
+						</Typography>
+					</Box>
+
+					{/* Display recipient's last seen only if offline */}
+					{!statusLoading && !status?.online && !error && status?.last_seen && (
+						<Typography variant='body2'>
+							Last seen: {new Date(status?.last_seen).toLocaleString()}
+						</Typography>
+					)}
+
+					{/* Handle loading and error states */}
+					{statusLoading && <Typography variant='body2'>Loading status...</Typography>}
+					{error && (
+						<Typography variant='body2' color='error'>
+							{error}
+						</Typography>
+					)}
 				</Box>
 			</Box>
 

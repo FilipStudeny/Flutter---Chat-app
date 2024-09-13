@@ -15,9 +15,9 @@ import getFirabaseAuthErrorMessage from "../../constants/Errors/firebase-auth-er
 import { UserDataModel } from "../../constants/Models/UserDataModel";
 import { FirebaseAuth } from "../../firebase";
 import createUser from "../../services/DatabaseService/createUser";
+import fetchFriends from "../../services/DatabaseService/fetchFriends";
 import getUser from "../../services/DatabaseService/getUser";
 import { uploadFile } from "../../services/FileStorageService/uploadFile";
-import fetchFriends from "../../services/DatabaseService/fetchFriends";
 
 interface AuthResponse {
 	success: boolean;
@@ -77,6 +77,7 @@ export const AuthenticationProvider: FC<AuthenticationProviderProps> = ({ childr
 					onDisconnect(userStatusRef).set({
 						online: false,
 						last_seen: Date.now(),
+						location: "",
 					});
 				}
 			}

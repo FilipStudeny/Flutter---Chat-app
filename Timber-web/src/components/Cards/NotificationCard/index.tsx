@@ -11,7 +11,7 @@ import useDeleteNotification from "../../../hooks/useDeleteNotification";
 
 interface NotificationCardProps {
 	notification: UserNotification;
-	onNotificationAction: () => void; // New prop to trigger list reload
+	onNotificationAction: () => void;
 }
 
 const NotificationCard: React.FC<NotificationCardProps> = ({ notification, onNotificationAction }) => {
@@ -98,6 +98,7 @@ const NotificationCard: React.FC<NotificationCardProps> = ({ notification, onNot
 				</Box>
 			</Box>
 
+			{/* Only show "Accept" button for friend requests */}
 			{notification.type === NotificationType.FRIEND_REQUEST && (
 				<Box sx={{ display: "flex", justifyContent: "center", gap: 1, mt: 1 }}>
 					<Button
@@ -118,28 +119,32 @@ const NotificationCard: React.FC<NotificationCardProps> = ({ notification, onNot
 					>
 						{addFriendLoading ? <CircularProgress size={20} color='inherit' /> : "Accept"}
 					</Button>
-					<Button
-						variant='outlined'
-						size='small'
-						startIcon={<Delete />}
-						onClick={handleDeleteNotification}
-						sx={{
-							borderColor: "rgba(255,64,129,1)",
-							color: "rgba(255,64,129,1)",
-							fontWeight: "bold",
-							textTransform: "none",
-							"&:hover": {
-								borderColor: "rgba(255,105,135,1)",
-								color: "rgba(255,105,135,1)",
-								background: "rgba(255,105,135,0.1)",
-							},
-						}}
-						disabled={deleteNotificationLoading}
-					>
-						{deleteNotificationLoading ? <CircularProgress size={20} color='inherit' /> : "Delete"}
-					</Button>
 				</Box>
 			)}
+
+			{/* The delete button is now always displayed */}
+			<Box sx={{ display: "flex", justifyContent: "center", gap: 1, mt: 1 }}>
+				<Button
+					variant='outlined'
+					size='small'
+					startIcon={<Delete />}
+					onClick={handleDeleteNotification}
+					sx={{
+						borderColor: "rgba(255,64,129,1)",
+						color: "rgba(255,64,129,1)",
+						fontWeight: "bold",
+						textTransform: "none",
+						"&:hover": {
+							borderColor: "rgba(255,105,135,1)",
+							color: "rgba(255,105,135,1)",
+							background: "rgba(255,105,135,0.1)",
+						},
+					}}
+					disabled={deleteNotificationLoading}
+				>
+					{deleteNotificationLoading ? <CircularProgress size={20} color='inherit' /> : "Delete"}
+				</Button>
+			</Box>
 		</Card>
 	);
 };

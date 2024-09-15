@@ -22,3 +22,4 @@ export { default as useGetUserStatus } from "./useGetUserStatus";
 export { default as useLoadChatMessages } from "./useLoadChatMessages";
 export { default as useAddChatToUsers } from "./useAddChatToUsers";
 export { default as useGetChatsForUser } from "./useGetChatsForUser";
+export { default as useCreateReport } from "./useCreateReport";

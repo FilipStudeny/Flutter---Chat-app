@@ -35,6 +35,7 @@ import toast, { Toaster } from "react-hot-toast";
 import { useNavigate, useParams } from "react-router-dom";
 
 import PhotosSection from "./components/PhotoSection";
+import ReportUserModal from "./components/ReportUserModal";
 import UserList from "../../../components/Lists/UsersList";
 import AppRoutes from "../../../constants/Enums/AppRoutes";
 import { Gender } from "../../../constants/Enums/Gender";
@@ -125,8 +126,8 @@ const UserProfilePage: React.FC = () => {
 	const [updatedUserData, setUpdatedUserData] = useState<UserDataModel | null>(null);
 	const [confirmRemoveFriendOpen, setConfirmRemoveFriendOpen] = useState<boolean>(false);
 	const [selectedPicturesForDeletion, setSelectedPicturesForDeletion] = useState<string[]>([]);
+	const [openReportModal, setOpenReportModal] = useState(false);
 
-	// Reuse `fetchUser` to reload the user data
 	const reloadUserData = async () => {
 		await fetchUser();
 		await fetchPhotos();
@@ -239,6 +240,14 @@ const UserProfilePage: React.FC = () => {
 	if (userError || photosError) {
 		return <Typography color='error'>Error loading data: {userError || photosError}</Typography>;
 	}
+
+	const handleOpenReportModal = () => {
+		setOpenReportModal(true);
+	};
+
+	const handleCloseReportModal = () => {
+		setOpenReportModal(false);
+	};
 
 	const handleSelectUploadedPicture = (url: string) => {
 		setSelectedUploadedPicture(url);
@@ -614,9 +623,17 @@ const UserProfilePage: React.FC = () => {
 										borderColor: "#f44336",
 									},
 								}}
+								onClick={handleOpenReportModal}
 							>
 								Report User
 							</Button>
+							{/* ReportUserModal Component */}
+							<ReportUserModal
+								open={openReportModal}
+								onClose={handleCloseReportModal}
+								reportedUserId={id as string}
+								reporterId={currentUser?.uid as string}
+							/>
 						</Box>
 					)}
 

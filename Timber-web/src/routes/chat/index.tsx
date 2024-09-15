@@ -46,7 +46,11 @@ const ChatsPage: React.FC = () => {
 	}
 
 	if (error) {
-		return <Typography variant='h6' align='center' sx={{ mt: 4 }}>Error: {error}</Typography>;
+		return (
+			<Typography variant='h6' align='center' sx={{ mt: 4 }}>
+				Error: {error}
+			</Typography>
+		);
 	}
 
 	if (!chats.length) {
@@ -98,8 +102,8 @@ const ChatsPage: React.FC = () => {
 									<Typography variant='caption' color='textSecondary'>
 										{chat.lastMessageTime
 											? formatDistanceToNow(new Date(chat.lastMessageTime), {
-												addSuffix: true,
-											})
+													addSuffix: true,
+												})
 											: ""}
 									</Typography>
 								</TableCell>

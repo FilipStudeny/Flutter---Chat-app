@@ -1,28 +1,29 @@
-import { AttachFile, Send } from "@mui/icons-material";
-import { Box, TextField, Button, IconButton, Avatar, Typography, Dialog, styled, Badge } from "@mui/material";
-import { formatDistanceToNow } from "date-fns";
+// ChatDetailPage.tsx
+
 import React, { useState, useEffect, useRef } from "react";
+import {
+	Box,
+	TextField,
+	Button,
+	IconButton,
+	Avatar,
+	Typography,
+	Dialog,
+	styled,
+	Badge,
+} from "@mui/material";
+import { AttachFile, Send } from "@mui/icons-material";
+import { formatDistanceToNow } from "date-fns";
 import { useLocation } from "react-router-dom";
 
-import { UserDataModel, calculateAge, getFullName, genderToString } from "../../../constants/Models/UserDataModel";
+import { Message } from "../../../constants/Models/Message";
+import { UserDataModel, getFullName } from "../../../constants/Models/UserDataModel";
 import { useAuth } from "../../../context/AuthenticationContext";
 import useUserStatus from "../../../hooks/useGetUserStatus";
 import useSendMessage from "../../../hooks/useSendMessage";
+import { loadMessages, loadMoreMessages } from "../../../services/MessagingService/loadMessages";
 
-interface Message {
-	id: string;
-	text: string;
-	senderId: string;
-	timestamp: Date;
-	fileUrl?: string;
-	fileName?: string;
-	isImage?: boolean;
-}
-
-interface ChatRouteState {
-	recipient: UserDataModel;
-}
-
+// Styled components
 const StyledBadge = styled(Badge)(({ theme }) => ({
 	"& .MuiBadge-badge": {
 		backgroundColor: "#44b700",
@@ -54,13 +55,16 @@ const StyledBadge = styled(Badge)(({ theme }) => ({
 	},
 }));
 
+// ChatDetailPage component
 const ChatDetailPage: React.FC = () => {
 	const location = useLocation();
-	const state = location.state as ChatRouteState;
+	const state = location.state as { recipient: UserDataModel };
 	const { recipient } = state;
 
 	const { currentUser, userData } = useAuth();
 	const [messages, setMessages] = useState<Message[]>([]);
+	const [hasMoreMessages, setHasMoreMessages] = useState<boolean>(true);
+	const [loadingMore, setLoadingMore] = useState<boolean>(false);
 	const [newMessage, setNewMessage] = useState<string>("");
 	const [selectedFile, setSelectedFile] = useState<File | null>(null);
 	const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
@@ -73,55 +77,82 @@ const ChatDetailPage: React.FC = () => {
 
 	const { status, loading: statusLoading, error } = useUserStatus(recipient.uid as string);
 
+	// Scroll to the bottom of the messages
 	const scrollToBottom = () => {
 		messageEndRef.current?.scrollIntoView({ behavior: "smooth" });
 	};
 
+	// Load messages using the loadMessages function
 	useEffect(() => {
-		// Simulated initial fetch of messages
-		const fetchedMessages: Message[] = [
-			{
-				id: "1",
-				text: "Hey! How are you?",
-				senderId: "123",
-				timestamp: new Date(),
-			},
-			{
-				id: "2",
-				text: "I'm good! How about you?",
-				senderId: currentUser?.uid || "456",
-				timestamp: new Date(),
-			},
-		];
-		setMessages(fetchedMessages);
-		scrollToBottom();
-	}, [currentUser]);
+		// Initialize unsubscribe to a no-op function
+		let unsubscribe = () => { };
 
+		if (currentUser && recipient.uid) {
+			const limit = 10; // Set your desired limit here
+			unsubscribe = loadMessages(
+				currentUser.uid,
+				recipient.uid,
+				limit, // Use the limit variable
+				(fetchedMessages) => {
+					setMessages(fetchedMessages);
+					setHasMoreMessages(fetchedMessages.length >= limit); // Use the same limit
+					scrollToBottom();
+				},
+				(error) => {
+					console.error("Error loading messages:", error);
+				}
+			);
+		}
+
+		return () => {
+			unsubscribe();
+		};
+	}, [currentUser, recipient.uid]);
+
+	// Handle loading more messages
+	const handleLoadMoreMessages = async () => {
+		if (!currentUser || !recipient.uid || messages.length === 0) return;
+
+		setLoadingMore(true);
+
+		try {
+			const lastMessage = messages[0]; // Get the oldest message currently loaded
+			const limit = 10; // Number of messages to load each time
+			const olderMessages = await loadMoreMessages(
+				currentUser.uid,
+				recipient.uid,
+				lastMessage,
+				limit
+			);
+
+			if (olderMessages.length === 0) {
+				setHasMoreMessages(false); // No more messages to load
+			} else {
+				setMessages((prevMessages) => [...olderMessages, ...prevMessages]);
+				setHasMoreMessages(olderMessages.length >= limit);
+			}
+		} catch (error) {
+			console.error("Error loading more messages:", error);
+		} finally {
+			setLoadingMore(false);
+		}
+	};
+
+	// Handle sending a new message
 	const handleSendMessage = async () => {
 		if (newMessage.trim() === "" && !selectedFile) return;
 
-		const isImage = selectedFile ? selectedFile.type.startsWith("image/") : false;
+		// Implement file upload if selectedFile is present
+		// For now, we'll assume sendMessageToUser handles the message sending
 
-		const newMessageObj: Message = {
-			id: Date.now().toString(),
-			text: newMessage,
-			senderId: currentUser?.uid || "",
-			timestamp: new Date(),
-			fileUrl: selectedFile ? URL.createObjectURL(selectedFile) : undefined,
-			fileName: selectedFile?.name,
-			isImage,
-		};
-
-		// Call sendMessageToUser from the useSendMessage hook
 		await sendMessageToUser(newMessage);
 
-		// Append message locally to the chat
-		setMessages((prevMessages) => [...prevMessages, newMessageObj]);
 		setNewMessage("");
 		setSelectedFile(null);
 		scrollToBottom();
 	};
 
+	// Handle file attachment
 	const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
 		const file = event.target.files?.[0];
 		if (file) {
@@ -129,6 +160,7 @@ const ChatDetailPage: React.FC = () => {
 		}
 	};
 
+	// Handle image click for preview
 	const handleImageClick = (imageUrl: string) => {
 		setImagePreviewUrl(imageUrl);
 	};
@@ -139,18 +171,14 @@ const ChatDetailPage: React.FC = () => {
 
 	// Get recipient details
 	const recipientName = getFullName(recipient);
-	const recipientAge = calculateAge(recipient.dateOfBirth);
-	const recipientGender = recipient.gender ? genderToString(recipient.gender) : "Not specified";
 
-	// Function to render chat bubbles
+	// Render chat bubbles
 	const renderChatBubble = (message: Message) => {
 		const isSender = message.senderId === currentUser?.uid;
 
-		// Show recipient's name, age, and gender in the chat bubbles when they send a message
-		const displayName = isSender ? "You" : `${recipientName} (${recipientAge}, ${recipientGender})`;
-
 		return (
 			<Box
+				key={message.id}
 				sx={{
 					display: "flex",
 					flexDirection: isSender ? "row-reverse" : "row",
@@ -164,7 +192,7 @@ const ChatDetailPage: React.FC = () => {
 						mr: isSender ? 0 : 2,
 						ml: isSender ? 2 : 0,
 					}}
-					src={isSender ? (currentUser?.photoURL as string) : (recipient.profilePictureUrl as string)}
+					src={isSender ? currentUser?.photoURL ?? undefined : recipient.profilePictureUrl ?? undefined}
 				>
 					{!isSender && recipientName.charAt(0)}
 				</Avatar>
@@ -179,14 +207,14 @@ const ChatDetailPage: React.FC = () => {
 					}}
 				>
 					<Typography variant='body1' sx={{ fontWeight: "bold" }}>
-						{displayName}
+						{message.username}
 					</Typography>
 					<Typography variant='body1'>{message.text}</Typography>
-					{message.isImage && message.fileUrl && (
+					{message.file && message.file.url && (
 						<Box
 							component='img'
-							src={message.fileUrl}
-							alt={message.fileName}
+							src={message.file.url}
+							alt={message.file.name}
 							sx={{
 								width: "auto",
 								maxWidth: "100%",
@@ -197,14 +225,14 @@ const ChatDetailPage: React.FC = () => {
 									opacity: 0.9,
 								},
 							}}
-							onClick={() => handleImageClick(message.fileUrl as string)}
+							onClick={() => handleImageClick(message.file?.url as string)}
 						/>
 					)}
 					<Typography
 						variant='caption'
 						sx={{ display: "block", mt: 1, textAlign: isSender ? "right" : "left" }}
 					>
-						{formatDistanceToNow(message.timestamp, { addSuffix: true })}
+						{formatDistanceToNow(message.createdAt, { addSuffix: true })}
 					</Typography>
 				</Box>
 			</Box>
@@ -242,7 +270,7 @@ const ChatDetailPage: React.FC = () => {
 					sx={{
 						display: "flex",
 						alignItems: "center",
-						justifyContent: "space-between", // This will space the avatar + name to the left and status to the right
+						justifyContent: "space-between",
 					}}
 				>
 					<Box sx={{ display: "flex", alignItems: "center" }}>
@@ -252,10 +280,10 @@ const ChatDetailPage: React.FC = () => {
 							anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
 							variant='dot'
 						>
-							<Avatar alt='Remy Sharp' src={recipient.profilePictureUrl ?? undefined} />
+							<Avatar alt={recipientName} src={recipient.profilePictureUrl ?? undefined} />
 						</StyledBadge>
 
-						<Typography variant='h5' fontWeight='bold'>
+						<Typography variant='h5' fontWeight='bold' sx={{ marginLeft: 2 }}>
 							Chat with {recipientName}
 						</Typography>
 					</Box>
@@ -287,12 +315,19 @@ const ChatDetailPage: React.FC = () => {
 					display: "flex",
 					flexDirection: "column",
 					flexWrap: "nowrap",
-					overflow: "visible",
+					overflowY: "auto",
 				}}
 			>
-				{messages.map((message) => (
-					<React.Fragment key={message.id}>{renderChatBubble(message)}</React.Fragment>
-				))}
+				{hasMoreMessages && (
+					<Button
+						onClick={handleLoadMoreMessages}
+						disabled={loadingMore}
+						sx={{ alignSelf: "center", mb: 2 }}
+					>
+						{loadingMore ? "Loading..." : "Load previous"}
+					</Button>
+				)}
+				{messages.map((message) => renderChatBubble(message))}
 				<div ref={messageEndRef} />
 			</Box>
 
@@ -304,7 +339,7 @@ const ChatDetailPage: React.FC = () => {
 				borderTop='1px solid #ddd'
 				sx={{
 					position: "sticky",
-					bottom: "50px",
+					bottom: 0,
 					backgroundColor: "white",
 					zIndex: 1000,
 				}}

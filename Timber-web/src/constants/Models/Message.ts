@@ -1,8 +1,10 @@
+// Message.ts
 import { Timestamp, DocumentSnapshot } from "firebase/firestore";
 
 import { FileMetadata, fileMetadataFromMap, fileMetadataToMap } from "./FileMetadata";
 
 export interface Message {
+	id: string;
 	text: string;
 	senderId: string;
 	recipientId: string;
@@ -14,6 +16,7 @@ export interface Message {
 }
 
 export const messageFromMap = (map: Record<string, any>, doc: DocumentSnapshot): Message => ({
+	id: map.id,
 	text: map.text,
 	senderId: map.senderId,
 	recipientId: map.recipientId,
@@ -25,6 +28,7 @@ export const messageFromMap = (map: Record<string, any>, doc: DocumentSnapshot):
 });
 
 export const messageToMap = (message: Message): Record<string, any> => ({
+	id: message.id,
 	text: message.text,
 	senderId: message.senderId,
 	recipientId: message.recipientId,

@@ -16,4 +16,7 @@ export { default as useUpdateUserProfile } from "./useUpdateUserProfile";
 export { default as useUploadFile } from "./useUploadFile";
 export { default as useCheckFriendRequest } from "./useCheckFriendRequest";
 export { default as useDeleteNotification } from "./useDeleteNotification";
+export { default as useSendFileMessage } from "./useSendFileMessage";
+export { default as useSendMessage } from "./useSendMessage";
 export { default as useGetUserStatus } from "./useGetUserStatus";
+export { default as useLoadChatMessages } from "./useLoadChatMessages";

@@ -1,20 +1,20 @@
 import { getDatabase, ref, get } from "firebase/database";
 import { useState, useEffect } from "react";
 
-interface UserStatus {
+interface GetUserStatus {
 	online: boolean;
 	last_seen: number;
 	location: string;
 }
 
-interface UseUserStatusResult {
-	status: UserStatus | null;
+interface GetUserStatusResult {
+	status: GetUserStatus | null;
 	loading: boolean;
 	error: string | null;
 }
 
-const useUserStatus = (uid: string): UseUserStatusResult => {
-	const [status, setStatus] = useState<UserStatus | null>(null);
+const useGetUserStatus = (uid: string): GetUserStatusResult => {
+	const [status, setStatus] = useState<GetUserStatus | null>(null);
 	const [loading, setLoading] = useState<boolean>(true);
 	const [error, setError] = useState<string | null>(null);
 
@@ -57,4 +57,4 @@ const useUserStatus = (uid: string): UseUserStatusResult => {
 	return { status, loading, error };
 };
 
-export default useUserStatus;
+export default useGetUserStatus;

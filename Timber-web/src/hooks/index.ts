@@ -20,3 +20,5 @@ export { default as useSendFileMessage } from "./useSendFileMessage";
 export { default as useSendMessage } from "./useSendMessage";
 export { default as useGetUserStatus } from "./useGetUserStatus";
 export { default as useLoadChatMessages } from "./useLoadChatMessages";
+export { default as useAddChatToUsers } from "./useAddChatToUsers";
+export { default as useGetChatsForUser } from "./useGetChatsForUser";

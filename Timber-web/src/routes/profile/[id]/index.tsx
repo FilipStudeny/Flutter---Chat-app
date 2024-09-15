@@ -53,6 +53,7 @@ import {
 	useUploadFile,
 	useCheckFriendRequest,
 	useDeleteNotification,
+	useAddChatToUsers,
 } from "../../../hooks";
 
 const UserProfilePage: React.FC = () => {
@@ -106,7 +107,7 @@ const UserProfilePage: React.FC = () => {
 		senderName: currentUser?.displayName as string,
 		recipientId: id as string,
 	});
-
+	const { loading: chatLoading, addChat } = useAddChatToUsers();
 	const {
 		loading: deleteNotificationLoading,
 		error: deleteNotificationError,
@@ -375,6 +376,21 @@ const UserProfilePage: React.FC = () => {
 		}
 	};
 
+	const handleSendMessage = () => {
+		if (currentUser?.uid && user?.uid) {
+			addChat(
+				currentUser.uid,
+				user.uid,
+				currentUser.displayName as string,
+				user.username || `${user.firstName} ${user.lastName}`,
+			);
+
+			navigate(AppRoutes.Chat.replace(":id", getChatId(currentUser?.uid as string, id as string)), {
+				state: { recipient: user },
+			});
+		}
+	};
+
 	const isCurrentUserProfile = currentUser?.uid === user?.uid;
 
 	return (
@@ -568,7 +584,7 @@ const UserProfilePage: React.FC = () => {
 							<Button
 								variant='outlined'
 								color='primary'
-								startIcon={<MessageOutlined />}
+								startIcon={chatLoading ? <CircularProgress size={24} /> : <MessageOutlined />}
 								sx={{
 									width: "100%",
 									color: "#ff4081",
@@ -578,19 +594,10 @@ const UserProfilePage: React.FC = () => {
 										borderColor: "#ff4081",
 									},
 								}}
-								onClick={() => {
-									navigate(
-										AppRoutes.Chat.replace(
-											":id",
-											getChatId(currentUser?.uid as string, id as string),
-										),
-										{
-											state: { recipient: user },
-										},
-									);
-								}}
+								onClick={handleSendMessage}
+								disabled={chatLoading} // Disable while chat is being added
 							>
-								Send Message
+								{chatLoading ? "Sending..." : "Send Message"}
 							</Button>
 
 							{/* Report User Button */}

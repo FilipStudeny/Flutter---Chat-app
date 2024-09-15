@@ -1,12 +1,15 @@
-import { AttachFile, Send } from "@mui/icons-material";
+import { AttachFile, Send, Description as FileIcon } from "@mui/icons-material";
 import { Box, TextField, Button, IconButton, Avatar, Typography, Dialog, styled, Badge } from "@mui/material";
 import { formatDistanceToNow } from "date-fns";
 import React, { useState, useEffect, useRef } from "react";
+import { toast } from "react-hot-toast";
 import { useLocation } from "react-router-dom";
 
+import NotificationType from "../../../constants/Enums/NotificationType";
 import { Message } from "../../../constants/Models/Message";
 import { UserDataModel, getFullName } from "../../../constants/Models/UserDataModel";
 import { useAuth } from "../../../context/AuthenticationContext";
+import useCreateNotification from "../../../hooks/useCreateNotification";
 import useGetUserStatus from "../../../hooks/useGetUserStatus";
 import useSendFileMessage from "../../../hooks/useSendFileMessage";
 import useSendMessage from "../../../hooks/useSendMessage";
@@ -18,7 +21,7 @@ interface StyledBadgeProps {
 
 const StyledBadge = styled(Badge)<StyledBadgeProps>(({ theme, online }) => ({
 	"& .MuiBadge-badge": {
-		backgroundColor: online ? "#44b700" : "#f44336", // Green when online, red when offline
+		backgroundColor: online ? "#44b700" : "#f44336",
 		color: online ? "#44b700" : "#f44336",
 		boxShadow: `0 0 0 2px ${theme.palette.background.paper}`,
 		width: "12px",
@@ -87,30 +90,22 @@ const ChatDetailPage: React.FC = () => {
 
 	const { status, loading: statusLoading, error: statusError } = useGetUserStatus(recipient.uid as string);
 
-	// Scroll to the bottom of the messages
+	const { sendNotification, loading: notificationLoading } = useCreateNotification();
+
 	const scrollToBottom = () => {
 		messageEndRef.current?.scrollIntoView({ behavior: "smooth" });
 	};
 
-	// Load messages using the loadMessages function
 	useEffect(() => {
 		let unsubscribe = () => {};
 
 		if (currentUser && recipient.uid) {
 			const limit = 10;
-			unsubscribe = loadMessages(
-				currentUser.uid,
-				recipient.uid,
-				limit,
-				(fetchedMessages) => {
-					setMessages(fetchedMessages);
-					setHasMoreMessages(fetchedMessages.length >= limit);
-					scrollToBottom();
-				},
-				(error) => {
-					console.error("Error loading messages:", error);
-				},
-			);
+			unsubscribe = loadMessages(currentUser.uid, recipient.uid, limit, (fetchedMessages) => {
+				setMessages(fetchedMessages);
+				setHasMoreMessages(fetchedMessages.length >= limit);
+				scrollToBottom();
+			});
 		}
 
 		return () => {
@@ -118,7 +113,6 @@ const ChatDetailPage: React.FC = () => {
 		};
 	}, [currentUser, recipient.uid]);
 
-	// Handle loading more messages
 	const handleLoadMoreMessages = async () => {
 		if (!currentUser || !recipient.uid || messages.length === 0) return;
 
@@ -135,37 +129,39 @@ const ChatDetailPage: React.FC = () => {
 				setMessages((prevMessages) => [...olderMessages, ...prevMessages]);
 				setHasMoreMessages(olderMessages.length >= limit);
 			}
-		} catch (error) {
-			console.error("Error loading more messages:", error);
 		} finally {
 			setLoadingMore(false);
 		}
 	};
 
-	// Handle sending a new message
 	const handleSendMessage = async () => {
 		if (newMessage.trim() === "" && !selectedFile) return;
+		const senderFullName = getFullName(userData as UserDataModel);
 
 		try {
 			if (selectedFile) {
-				// Send file message
 				await sendFileToUser(selectedFile);
 			}
 
 			if (newMessage.trim() !== "") {
-				// Send text message
 				await sendMessageToUser(newMessage);
 			}
-
+			if (status?.location !== location.pathname) {
+				await sendNotification(
+					currentUser?.uid as string,
+					recipient.uid as string,
+					`${senderFullName} has sent you a message!`,
+					NotificationType.MESSAGE,
+				);
+			}
 			setNewMessage("");
 			setSelectedFile(null);
 			scrollToBottom();
 		} catch (err) {
-			console.error("Error sending message:", err);
+			toast.error("Failed to send the message. Please try again.");
 		}
 	};
 
-	// Handle file attachment
 	const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
 		const file = event.target.files?.[0];
 		if (file) {
@@ -173,7 +169,6 @@ const ChatDetailPage: React.FC = () => {
 		}
 	};
 
-	// Handle image click for preview
 	const handleImageClick = (imageUrl: string) => {
 		setImagePreviewUrl(imageUrl);
 	};
@@ -182,12 +177,25 @@ const ChatDetailPage: React.FC = () => {
 		setImagePreviewUrl(null);
 	};
 
-	// Get recipient details
+	const renderFileMessage = (file: { name: string; url: string; size: number }, isSender: boolean) => (
+		<Box sx={{ display: "flex", alignItems: "center", mt: 1 }}>
+			<FileIcon sx={{ color: isSender ? "white" : "black", marginRight: 1 }} />
+			<Box>
+				<Typography variant='body2' sx={{ fontWeight: "bold", color: isSender ? "white" : "black" }}>
+					{file.name}
+				</Typography>
+				<Typography variant='caption' sx={{ color: isSender ? "white" : "black" }}>
+					{(file.size / 1024).toFixed(2)} KB
+				</Typography>
+			</Box>
+		</Box>
+	);
+
 	const recipientName = getFullName(recipient);
 
-	// Render chat bubbles
 	const renderChatBubble = (message: Message) => {
 		const isSender = message.senderId === currentUser?.uid;
+		const isImage = message.file?.url && message.file.name.match(/\.(jpeg|jpg|gif|png|webp)$/i) !== null;
 
 		return (
 			<Box
@@ -223,24 +231,29 @@ const ChatDetailPage: React.FC = () => {
 						{message.username}
 					</Typography>
 					{message.text && <Typography variant='body1'>{message.text}</Typography>}
-					{message.file && message.file.url && (
-						<Box
-							component='img'
-							src={message.file.url}
-							alt={message.file.name}
-							sx={{
-								width: "auto",
-								maxWidth: "100%",
-								maxHeight: "200px",
-								borderRadius: "8px",
-								cursor: "pointer",
-								"&:hover": {
-									opacity: 0.9,
-								},
-							}}
-							onClick={() => handleImageClick(message.file?.url as string)}
-						/>
-					)}
+					{message.file ? (
+						isImage ? (
+							<Box
+								component='img'
+								src={message.file.url}
+								alt={message.file.name}
+								sx={{
+									width: "auto",
+									maxWidth: "100%",
+									maxHeight: "200px",
+									borderRadius: "8px",
+									cursor: "pointer",
+									"&:hover": {
+										opacity: 0.9,
+									},
+								}}
+								onClick={() => message.file && handleImageClick(message.file.url)}
+							/>
+						) : (
+							renderFileMessage(message.file, isSender)
+						)
+					) : null}
+
 					<Typography
 						variant='caption'
 						sx={{ display: "block", mt: 1, textAlign: isSender ? "right" : "left" }}
@@ -256,7 +269,7 @@ const ChatDetailPage: React.FC = () => {
 		return <Typography variant='h5'>No recipient data available</Typography>;
 	}
 
-	const isLoading = loading || fileLoading;
+	const isLoading = loading || fileLoading || notificationLoading;
 
 	return (
 		<Box
@@ -375,6 +388,9 @@ const ChatDetailPage: React.FC = () => {
 				<Button
 					variant='contained'
 					color='primary'
+					sx={{
+						background: "linear-gradient(45deg, rgba(255,64,129,1) 0%, rgba(255,105,135,1) 100%)",
+					}}
 					endIcon={<Send />}
 					onClick={handleSendMessage}
 					disabled={isLoading}
@@ -383,7 +399,7 @@ const ChatDetailPage: React.FC = () => {
 				</Button>
 			</Box>
 
-			{/* Image Preview Modal */}
+			{/* Image Preview Modal without Download Button */}
 			<Dialog
 				open={!!imagePreviewUrl}
 				onClose={handleCloseImagePreview}
@@ -395,12 +411,14 @@ const ChatDetailPage: React.FC = () => {
 					},
 				}}
 			>
-				<Box
-					component='img'
-					src={imagePreviewUrl || ""}
-					alt='Preview'
-					sx={{ width: "100%", maxHeight: "80vh", borderRadius: "8px" }}
-				/>
+				<Box sx={{ position: "relative", width: "100%", maxHeight: "80vh" }}>
+					<Box
+						component='img'
+						src={imagePreviewUrl || ""}
+						alt='Preview'
+						sx={{ width: "100%", maxHeight: "80vh", borderRadius: "8px" }}
+					/>
+				</Box>
 			</Dialog>
 		</Box>
 	);

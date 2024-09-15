@@ -1,33 +1,25 @@
-// ChatDetailPage.tsx
-
-import React, { useState, useEffect, useRef } from "react";
-import {
-	Box,
-	TextField,
-	Button,
-	IconButton,
-	Avatar,
-	Typography,
-	Dialog,
-	styled,
-	Badge,
-} from "@mui/material";
 import { AttachFile, Send } from "@mui/icons-material";
+import { Box, TextField, Button, IconButton, Avatar, Typography, Dialog, styled, Badge } from "@mui/material";
 import { formatDistanceToNow } from "date-fns";
+import React, { useState, useEffect, useRef } from "react";
 import { useLocation } from "react-router-dom";
 
 import { Message } from "../../../constants/Models/Message";
 import { UserDataModel, getFullName } from "../../../constants/Models/UserDataModel";
 import { useAuth } from "../../../context/AuthenticationContext";
-import useUserStatus from "../../../hooks/useGetUserStatus";
+import useGetUserStatus from "../../../hooks/useGetUserStatus";
+import useSendFileMessage from "../../../hooks/useSendFileMessage";
 import useSendMessage from "../../../hooks/useSendMessage";
 import { loadMessages, loadMoreMessages } from "../../../services/MessagingService/loadMessages";
 
-// Styled components
-const StyledBadge = styled(Badge)(({ theme }) => ({
+interface StyledBadgeProps {
+	online: boolean;
+}
+
+const StyledBadge = styled(Badge)<StyledBadgeProps>(({ theme, online }) => ({
 	"& .MuiBadge-badge": {
-		backgroundColor: "#44b700",
-		color: "#44b700",
+		backgroundColor: online ? "#44b700" : "#f44336", // Green when online, red when offline
+		color: online ? "#44b700" : "#f44336",
 		boxShadow: `0 0 0 2px ${theme.palette.background.paper}`,
 		width: "12px",
 		height: "12px",
@@ -38,7 +30,7 @@ const StyledBadge = styled(Badge)(({ theme }) => ({
 			width: "100%",
 			height: "100%",
 			borderRadius: "50%",
-			animation: "ripple 1.2s infinite ease-in-out",
+			animation: online ? "ripple 1.2s infinite ease-in-out" : "pulse 2s infinite ease-in-out",
 			border: "1px solid currentColor",
 			content: '""',
 		},
@@ -53,9 +45,18 @@ const StyledBadge = styled(Badge)(({ theme }) => ({
 			opacity: 0,
 		},
 	},
+	"@keyframes pulse": {
+		"0%": {
+			transform: "scale(.8)",
+			opacity: 1,
+		},
+		"100%": {
+			transform: "scale(.8)",
+			opacity: 0,
+		},
+	},
 }));
 
-// ChatDetailPage component
 const ChatDetailPage: React.FC = () => {
 	const location = useLocation();
 	const state = location.state as { recipient: UserDataModel };
@@ -75,7 +76,16 @@ const ChatDetailPage: React.FC = () => {
 		recipient,
 	});
 
-	const { status, loading: statusLoading, error } = useUserStatus(recipient.uid as string);
+	const {
+		sendFileToUser,
+		loading: fileLoading,
+		error: fileError,
+	} = useSendFileMessage({
+		sender: userData as UserDataModel,
+		recipient,
+	});
+
+	const { status, loading: statusLoading, error: statusError } = useGetUserStatus(recipient.uid as string);
 
 	// Scroll to the bottom of the messages
 	const scrollToBottom = () => {
@@ -84,23 +94,22 @@ const ChatDetailPage: React.FC = () => {
 
 	// Load messages using the loadMessages function
 	useEffect(() => {
-		// Initialize unsubscribe to a no-op function
-		let unsubscribe = () => { };
+		let unsubscribe = () => {};
 
 		if (currentUser && recipient.uid) {
-			const limit = 10; // Set your desired limit here
+			const limit = 10;
 			unsubscribe = loadMessages(
 				currentUser.uid,
 				recipient.uid,
-				limit, // Use the limit variable
+				limit,
 				(fetchedMessages) => {
 					setMessages(fetchedMessages);
-					setHasMoreMessages(fetchedMessages.length >= limit); // Use the same limit
+					setHasMoreMessages(fetchedMessages.length >= limit);
 					scrollToBottom();
 				},
 				(error) => {
 					console.error("Error loading messages:", error);
-				}
+				},
 			);
 		}
 
@@ -116,17 +125,12 @@ const ChatDetailPage: React.FC = () => {
 		setLoadingMore(true);
 
 		try {
-			const lastMessage = messages[0]; // Get the oldest message currently loaded
-			const limit = 10; // Number of messages to load each time
-			const olderMessages = await loadMoreMessages(
-				currentUser.uid,
-				recipient.uid,
-				lastMessage,
-				limit
-			);
+			const lastMessage = messages[0];
+			const limit = 10;
+			const olderMessages = await loadMoreMessages(currentUser.uid, recipient.uid, lastMessage, limit);
 
 			if (olderMessages.length === 0) {
-				setHasMoreMessages(false); // No more messages to load
+				setHasMoreMessages(false);
 			} else {
 				setMessages((prevMessages) => [...olderMessages, ...prevMessages]);
 				setHasMoreMessages(olderMessages.length >= limit);
@@ -142,14 +146,23 @@ const ChatDetailPage: React.FC = () => {
 	const handleSendMessage = async () => {
 		if (newMessage.trim() === "" && !selectedFile) return;
 
-		// Implement file upload if selectedFile is present
-		// For now, we'll assume sendMessageToUser handles the message sending
+		try {
+			if (selectedFile) {
+				// Send file message
+				await sendFileToUser(selectedFile);
+			}
 
-		await sendMessageToUser(newMessage);
+			if (newMessage.trim() !== "") {
+				// Send text message
+				await sendMessageToUser(newMessage);
+			}
 
-		setNewMessage("");
-		setSelectedFile(null);
-		scrollToBottom();
+			setNewMessage("");
+			setSelectedFile(null);
+			scrollToBottom();
+		} catch (err) {
+			console.error("Error sending message:", err);
+		}
 	};
 
 	// Handle file attachment
@@ -192,7 +205,7 @@ const ChatDetailPage: React.FC = () => {
 						mr: isSender ? 0 : 2,
 						ml: isSender ? 2 : 0,
 					}}
-					src={isSender ? currentUser?.photoURL ?? undefined : recipient.profilePictureUrl ?? undefined}
+					src={isSender ? (currentUser?.photoURL ?? undefined) : (recipient.profilePictureUrl ?? undefined)}
 				>
 					{!isSender && recipientName.charAt(0)}
 				</Avatar>
@@ -209,7 +222,7 @@ const ChatDetailPage: React.FC = () => {
 					<Typography variant='body1' sx={{ fontWeight: "bold" }}>
 						{message.username}
 					</Typography>
-					<Typography variant='body1'>{message.text}</Typography>
+					{message.text && <Typography variant='body1'>{message.text}</Typography>}
 					{message.file && message.file.url && (
 						<Box
 							component='img'
@@ -242,6 +255,8 @@ const ChatDetailPage: React.FC = () => {
 	if (!recipient) {
 		return <Typography variant='h5'>No recipient data available</Typography>;
 	}
+
+	const isLoading = loading || fileLoading;
 
 	return (
 		<Box
@@ -276,9 +291,9 @@ const ChatDetailPage: React.FC = () => {
 					<Box sx={{ display: "flex", alignItems: "center" }}>
 						<StyledBadge
 							overlap='circular'
-							color={status?.online ? "success" : "error"}
 							anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
 							variant='dot'
+							online={status?.online as boolean}
 						>
 							<Avatar alt={recipientName} src={recipient.profilePictureUrl ?? undefined} />
 						</StyledBadge>
@@ -289,17 +304,22 @@ const ChatDetailPage: React.FC = () => {
 					</Box>
 
 					{/* Display recipient's last seen only if offline */}
-					{!statusLoading && !status?.online && !error && status?.last_seen && (
+					{!statusLoading && !status?.online && !statusError && status?.last_seen && (
 						<Typography variant='body2'>
-							Last seen: {new Date(status?.last_seen).toLocaleString()}
+							Last seen: {new Date(status.last_seen).toLocaleString()}
 						</Typography>
 					)}
 
 					{/* Handle loading and error states */}
 					{statusLoading && <Typography variant='body2'>Loading status...</Typography>}
-					{error && (
+					{statusError && (
 						<Typography variant='body2' color='error'>
-							{error}
+							{statusError}
+						</Typography>
+					)}
+					{fileError && (
+						<Typography variant='body2' color='error'>
+							{fileError}
 						</Typography>
 					)}
 				</Box>
@@ -319,11 +339,7 @@ const ChatDetailPage: React.FC = () => {
 				}}
 			>
 				{hasMoreMessages && (
-					<Button
-						onClick={handleLoadMoreMessages}
-						disabled={loadingMore}
-						sx={{ alignSelf: "center", mb: 2 }}
-					>
+					<Button onClick={handleLoadMoreMessages} disabled={loadingMore} sx={{ alignSelf: "center", mb: 2 }}>
 						{loadingMore ? "Loading..." : "Load previous"}
 					</Button>
 				)}
@@ -361,9 +377,9 @@ const ChatDetailPage: React.FC = () => {
 					color='primary'
 					endIcon={<Send />}
 					onClick={handleSendMessage}
-					disabled={loading}
+					disabled={isLoading}
 				>
-					{loading ? "Sending..." : "Send"}
+					{isLoading ? "Sending..." : "Send"}
 				</Button>
 			</Box>
 

@@ -1,13 +1,7 @@
 import { getStorage, ref, listAll, getDownloadURL, getMetadata } from "firebase/storage";
 
+import { FileMetadata } from "../../constants/Models/FileMetadata";
 import { ServiceResponse } from "../../constants/Models/ServiceResponse";
-
-export interface FileMetadata {
-	url: string;
-	type: string;
-	size: number;
-	name: string;
-}
 
 const getUserPhotos = async (userId: string): Promise<ServiceResponse<FileMetadata[]>> => {
 	try {

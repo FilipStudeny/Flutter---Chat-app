@@ -45,7 +45,6 @@ const getAllUsers = async ({
 		let userQuery: Query<DocumentData>;
 
 		if (fetchFriends && userId) {
-			// If getting friends, fetch user's friends list
 			const userDoc = await getDoc(doc(FirebaseFireStore, "users", userId));
 
 			if (!userDoc.exists()) {
@@ -58,23 +57,18 @@ const getAllUsers = async ({
 				return { success: true, message: "No friends found", data: [] };
 			}
 
-			// Initialize query with friends list filter
 			userQuery = query(usersCollection, where("__name__", "in", friends));
 		} else {
-			// If not getting friends, initialize a general query
 			userQuery = query(usersCollection);
 		}
 
-		// Common filters applied in both scenarios
 		const filters: any[] = [];
 
 		if (username) {
-			// Search by username
 			filters.push(orderBy("username"));
 			filters.push(where("username", ">=", username));
 			filters.push(where("username", "<", `${username}\uf8ff`));
 		} else {
-			// General query ordered by document ID for pagination
 			filters.push(orderBy("__name__"));
 		}
 
@@ -86,16 +80,13 @@ const getAllUsers = async ({
 			filters.push(where("gender", "==", gender));
 		}
 
-		// Apply pagination
 		if (lastDocument) {
 			const documentId = lastDocument as UserDataModel;
 			filters.push(startAfter(documentId.uid));
 		}
 
-		// Apply filters to the query
 		userQuery = query(userQuery, ...filters, limit(resultLimit));
 
-		// Execute the query
 		const querySnapshot: QuerySnapshot<DocumentData> = await getDocs(userQuery);
 
 		if (!querySnapshot.empty) {

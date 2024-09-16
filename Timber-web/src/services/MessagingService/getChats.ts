@@ -1,7 +1,8 @@
 import { collection, doc, getDoc, query, limit, startAfter, getDocs, where, orderBy } from "firebase/firestore";
+
+import { Gender } from "../../constants/Enums/Gender";
 import { ServiceResponse } from "../../constants/Models/ServiceResponse";
 import { FirebaseFireStore } from "../../firebase";
-import { Gender } from "../../constants/Enums/Gender"; // Assuming you have an enum for Gender
 
 interface Recipient {
 	uid: string;
@@ -20,7 +21,7 @@ interface Recipient {
 interface Chat {
 	id: string;
 	recipientName: string;
-	recipient: Recipient; // Store full recipient data
+	recipient: Recipient;
 	lastMessage: string;
 	recipientAvatar?: string;
 	lastMessageTime: Date | null;
@@ -44,7 +45,6 @@ const getChatsForUser = async (
 	lastVisible: any = null,
 ): Promise<GetChatsResponse> => {
 	try {
-		// Fetch the current user's document
 		const userDocRef = doc(FirebaseFireStore, "users", userId);
 		const userDocSnapshot = await getDoc(userDocRef);
 
@@ -59,7 +59,6 @@ const getChatsForUser = async (
 			return { data: [], success: true, message: "No chats found." };
 		}
 
-		// Firestore query to fetch the user's chats
 		const chatsCollectionRef = collection(FirebaseFireStore, "chats");
 		const chatsQuery = lastVisible
 			? query(
@@ -83,7 +82,6 @@ const getChatsForUser = async (
 			return { data: [], success: true, message: "No chats found." };
 		}
 
-		// Fetch chats and their respective recipient's data
 		const chats = await Promise.all(
 			chatsSnapshot.docs.map(async (chatSnapshot) => {
 				const chatData = chatSnapshot.data();
@@ -98,7 +96,6 @@ const getChatsForUser = async (
 					return null;
 				}
 
-				// Fetch recipient data from Firestore
 				const recipientId = chatData.participants.find((participantId: string) => participantId !== userId);
 				const recipientDocRef = doc(FirebaseFireStore, "users", recipientId);
 				const recipientDocSnapshot = await getDoc(recipientDocRef);

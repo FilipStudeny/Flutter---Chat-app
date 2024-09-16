@@ -168,6 +168,20 @@ const UserProfilePage: React.FC = () => {
 	};
 
 	useEffect(() => {
+		if (user) {
+			setUpdatedUserData({
+				username: user.username,
+				firstName: user.firstName,
+				lastName: user.lastName,
+				email: user.email,
+				phoneNumber: user.phoneNumber,
+				dateOfBirth: user.dateOfBirth,
+				aboutMe: user.aboutMe,
+			});
+		}
+	}, [user]);
+
+	useEffect(() => {
 		if (profilePictureSuccess) {
 			reloadUserData();
 		}
@@ -604,7 +618,7 @@ const UserProfilePage: React.FC = () => {
 									},
 								}}
 								onClick={handleSendMessage}
-								disabled={chatLoading} // Disable while chat is being added
+								disabled={chatLoading}
 							>
 								{chatLoading ? "Sending..." : "Send Message"}
 							</Button>
@@ -755,19 +769,7 @@ const UserProfilePage: React.FC = () => {
 										</Box>
 									</Grid>
 								</Grid>
-							</Box>
-
-							{/* About Me Section */}
-							<Box
-								sx={{
-									p: 3,
-									width: "100%",
-									borderRadius: 4,
-									boxShadow: "0px 4px 20px rgba(0, 0, 0, 0.1)",
-									mb: 4,
-								}}
-							>
-								<Box display='flex' justifyContent='space-between' alignItems='center' mb={2}>
+								<Box display='flex' justifyContent='space-between' alignItems='center' mb={2} mt={2}>
 									<Box display='flex' alignItems='center'>
 										<Avatar sx={{ bgcolor: "#ff7043", mr: 2 }}>
 											<Info />
@@ -776,12 +778,6 @@ const UserProfilePage: React.FC = () => {
 											About Me
 										</Typography>
 									</Box>
-
-									{isCurrentUserProfile && (
-										<IconButton onClick={() => setEditModalOpen(true)} size='large'>
-											<EditIcon />
-										</IconButton>
-									)}
 								</Box>
 
 								<Typography
@@ -824,7 +820,7 @@ const UserProfilePage: React.FC = () => {
 
 				{/* Friends List Section */}
 				<Box sx={{ mb: 6, width: "100%" }}>
-					<UserList fetchFriends userId={id} excludeId={id} />
+					<UserList fetchFriends userId={id} excludeId={id} title='Friends' />
 				</Box>
 
 				{/* Modals */}
@@ -837,7 +833,7 @@ const UserProfilePage: React.FC = () => {
 						<TextField
 							label='Username'
 							name='username'
-							value={user?.username}
+							value={updatedUserData?.username}
 							onChange={handleInputChange}
 							fullWidth
 							margin='normal'
@@ -845,7 +841,7 @@ const UserProfilePage: React.FC = () => {
 						<TextField
 							label='First Name'
 							name='firstName'
-							value={user?.firstName}
+							value={updatedUserData?.firstName}
 							onChange={handleInputChange}
 							fullWidth
 							margin='normal'
@@ -853,7 +849,7 @@ const UserProfilePage: React.FC = () => {
 						<TextField
 							label='Last Name'
 							name='lastName'
-							value={user?.lastName}
+							value={updatedUserData?.lastName}
 							onChange={handleInputChange}
 							fullWidth
 							margin='normal'
@@ -861,7 +857,7 @@ const UserProfilePage: React.FC = () => {
 						<TextField
 							label='Email'
 							name='email'
-							value={user?.email}
+							value={updatedUserData?.email}
 							onChange={handleInputChange}
 							fullWidth
 							margin='normal'
@@ -869,7 +865,7 @@ const UserProfilePage: React.FC = () => {
 						<TextField
 							label='Phone Number'
 							name='phoneNumber'
-							value={user?.phoneNumber}
+							value={updatedUserData?.phoneNumber}
 							onChange={handleInputChange}
 							fullWidth
 							margin='normal'
@@ -877,7 +873,7 @@ const UserProfilePage: React.FC = () => {
 						<LocalizationProvider dateAdapter={AdapterDayjs}>
 							<DatePicker
 								label='Select Date of Birth'
-								value={user?.dateOfBirth ? dayjs(user.dateOfBirth) : null}
+								value={updatedUserData?.dateOfBirth ? dayjs(updatedUserData.dateOfBirth) : null}
 								onChange={(date) => {
 									if (updatedUserData && date) {
 										updatedUserData.dateOfBirth = date.toDate();
@@ -895,17 +891,18 @@ const UserProfilePage: React.FC = () => {
 						<TextField
 							label='About Me'
 							name='aboutMe'
-							value={user?.aboutMe || ""}
+							value={updatedUserData?.aboutMe || ""}
 							onChange={handleInputChange}
 							fullWidth
 							margin='normal'
+							multiline
+							rows={6}
 						/>
 						<Box display='flex' justifyContent='space-between' mt={2}>
 							<Button
 								onClick={() => setEditModalOpen(false)}
 								variant='outlined'
 								sx={{
-									marginBottom: "1.5rem",
 									padding: "10px 20px",
 									fontSize: "1rem",
 									borderColor: "rgba(255,64,129,1)",
@@ -925,7 +922,6 @@ const UserProfilePage: React.FC = () => {
 								disabled={updateProfileLoading}
 								startIcon={updateProfileLoading ? <CircularProgress size={24} /> : <SaveIcon />}
 								sx={{
-									marginBottom: "1.5rem",
 									padding: "10px 20px",
 									fontSize: "1rem",
 									background:

@@ -22,14 +22,11 @@ const addChatToUsers = async (
 	try {
 		const chatId = getChatId(currentUserId, recipientId);
 
-		// Get references to the user documents
 		const currentUserDocRef = doc(FirebaseFireStore, "users", currentUserId);
 		const recipientUserDocRef = doc(FirebaseFireStore, "users", recipientId);
 
-		// Get reference to the chat document in the "chats" collection
 		const chatDocRef = doc(FirebaseFireStore, "chats", chatId);
 
-		// Create chat object to add to both users' chat lists
 		const chatEntryForCurrentUser = {
 			chatId,
 			recipientName,
@@ -42,17 +39,15 @@ const addChatToUsers = async (
 			recipientId: currentUserId,
 		};
 
-		// Check if the chat already exists, if not, create it
 		const chatDocSnapshot = await getDoc(chatDocRef);
 		if (!chatDocSnapshot.exists()) {
 			await setDoc(chatDocRef, {
-				messages: [], // Initialize with an empty message array
-				participants: [currentUserId, recipientId], // Optionally, store participant info
+				messages: [],
+				participants: [currentUserId, recipientId],
 				createdAt: new Date(),
 			});
 		}
 
-		// Update both users' chat lists
 		await Promise.all([
 			updateDoc(currentUserDocRef, {
 				chatList: arrayUnion(chatEntryForCurrentUser),

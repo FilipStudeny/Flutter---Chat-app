@@ -1,21 +1,18 @@
-import { Search, Settings, Person } from "@mui/icons-material";
-import { AppBar, Toolbar, IconButton, Typography, Avatar, InputBase, Box, Button } from "@mui/material";
+import { Person } from "@mui/icons-material";
+import { AppBar, Toolbar, IconButton, Typography, Avatar, Box, Button } from "@mui/material";
 import React from "react";
 import { useNavigate } from "react-router-dom";
 
+import NotificationDisplay from "./NotificationsDisplay";
 import {
 	appBarStyles,
 	toolbarStyles,
 	profileButtonStyles,
 	avatarStyles,
-	searchBoxStyles,
-	searchIconStyles,
-	inputBaseStyles,
 	buttonStyles,
 	iconButtonStyles,
 } from "./styles";
 import { useAuth } from "../../../context/AuthenticationContext";
-import NotificationDisplay from "./NotificationsDisplay";
 
 const Header: React.FC = () => {
 	const navigate = useNavigate();
@@ -37,22 +34,14 @@ const Header: React.FC = () => {
 							</Typography>
 						</Button>
 
-						<Box sx={searchBoxStyles}>
-							<Search sx={searchIconStyles} />
-							<InputBase placeholder='Search…' sx={inputBaseStyles} />
-						</Box>
-
 						<Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-							<Button color='inherit' onClick={logout} sx={buttonStyles}>
-								Logout
-							</Button>
-							<IconButton color='inherit' sx={iconButtonStyles}>
-								<Settings />
-							</IconButton>
-							<IconButton color='inherit' sx={iconButtonStyles}>
+							<IconButton color='inherit' sx={iconButtonStyles} onClick={handleProfileClick}>
 								<Person />
 							</IconButton>
 							<NotificationDisplay userId={currentUser?.uid} />
+							<Button color='inherit' onClick={logout} sx={buttonStyles}>
+								Logout
+							</Button>
 						</Box>
 					</>
 				) : (

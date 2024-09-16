@@ -12,9 +12,16 @@ interface UserListProps {
 	fetchFriends?: boolean;
 	userId?: string;
 	excludeId?: string;
+	title?: string;
 }
 
-const UserList: React.FC<UserListProps> = ({ separateFilter, fetchFriends, userId, excludeId }: UserListProps) => {
+const UserList: React.FC<UserListProps> = ({
+	separateFilter,
+	fetchFriends,
+	userId,
+	excludeId,
+	title,
+}: UserListProps) => {
 	const {
 		searchQuery,
 		setSearchQuery,
@@ -89,7 +96,7 @@ const UserList: React.FC<UserListProps> = ({ separateFilter, fetchFriends, userI
 					}}
 				>
 					<Typography variant='h6' align='left' sx={{ fontWeight: "medium", color: "text.secondary" }}>
-						Found users
+						{title ?? "Found users"}
 					</Typography>
 
 					{/* Render Filters Inline if separateFilter is false */}

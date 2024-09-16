@@ -81,7 +81,7 @@ export const loadMoreMessages = async (
 	lastMessage: Message,
 	limit: number = 10,
 ): Promise<Message[]> => {
-	const firestore = getFirestore(); // Get the Firestore instance
+	const firestore = getFirestore();
 	const chatId = getChatId(userId, recipientId);
 	const docRef = doc(firestore, "chats", chatId);
 	const docSnapshot = await getDoc(docRef);
@@ -105,7 +105,7 @@ export const loadMoreMessages = async (
 	});
 
 	if (lastIndex <= 0) {
-		return []; // No more messages to load
+		return [];
 	}
 
 	const startIndex = Math.max(0, lastIndex - limit);

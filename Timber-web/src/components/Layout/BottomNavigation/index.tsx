@@ -1,4 +1,4 @@
-import { Home, Person, Settings, Chat, Notifications, Search } from "@mui/icons-material";
+import { Home, Person, Chat, Search } from "@mui/icons-material";
 import { BottomNavigation, BottomNavigationAction, Paper } from "@mui/material";
 import React from "react";
 import { useNavigate } from "react-router-dom";
@@ -28,12 +28,6 @@ const BottomNav: React.FC = () => {
 				break;
 			case 4:
 				navigate(AppRoutes.Messages);
-				break;
-			case 5:
-				navigate(AppRoutes.Notifications);
-				break;
-			case 6:
-				navigate(AppRoutes.Settings);
 				break;
 			default:
 				break;
@@ -77,8 +71,6 @@ const BottomNav: React.FC = () => {
 				<BottomNavigationAction label='Profile' icon={<Person />} />
 				<BottomNavigationAction label='Search' icon={<Search />} />
 				<BottomNavigationAction label='Messages' icon={<Chat />} />
-				<BottomNavigationAction label='Notifications' icon={<Notifications />} />
-				<BottomNavigationAction label='Settings' icon={<Settings />} />
 			</BottomNavigation>
 		</Paper>
 	);

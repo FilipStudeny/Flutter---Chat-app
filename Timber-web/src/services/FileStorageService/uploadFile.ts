@@ -1,13 +1,7 @@
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
+import { FileMetadata } from "../../constants/Models/FileMetadata";
 import { ServiceResponse } from "../../constants/Models/ServiceResponse";
-
-export interface FileMetadata {
-	url: string;
-	type: string;
-	size: number;
-	name: string;
-}
 
 export const uploadFile = async (
 	file: File | null,
